@@ -10,8 +10,9 @@ interface Props {
   pan: { x: number; y: number };
   zoom: number;
   setPan: (p: { x: number; y: number }) => void;
-  onDrop: (type: ComponentType, x: number, y: number) => void;
+  onDrop: (type: ComponentType, x: number, y: number, label?: string) => void;
   onSelectComponent: (id: string, multi: boolean) => void;
+  onSelectMany: (ids: string[]) => void;
   onMoveComponent: (id: string, x: number, y: number) => void;
   onRotateComponent: (id: string) => void;
   onClearSelection: () => void;
@@ -25,6 +26,13 @@ interface Props {
 
 const snapToGrid = (val: number) => Math.round(val / SNAP_SIZE) * SNAP_SIZE;
 
+interface MarqueeRect {
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+}
+
 export const CircuitCanvas: React.FC<Props> = ({
   components,
   wires,
@@ -35,6 +43,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   setPan,
   onDrop,
   onSelectComponent,
+  onSelectMany,
   onMoveComponent,
   onRotateComponent,
   onClearSelection,
@@ -49,6 +58,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
+  const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
 
   const getSVGPoint = useCallback((clientX: number, clientY: number): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -64,16 +74,12 @@ export const CircuitCanvas: React.FC<Props> = ({
     if (e.ctrlKey || e.metaKey) {
       onZoom(e.deltaY > 0 ? -0.1 : 0.1);
     } else {
-      setPan({
-        x: pan.x - e.deltaX,
-        y: pan.y - e.deltaY,
-      });
+      setPan({ x: pan.x - e.deltaX, y: pan.y - e.deltaY });
     }
   }, [pan, setPan, onZoom]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
-      // Middle click or Alt+click to pan
       setPanning({ startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y });
       return;
     }
@@ -89,10 +95,12 @@ export const CircuitCanvas: React.FC<Props> = ({
     }
 
     if (e.button === 0 && mode === 'select') {
-      // Check if clicking on empty space
       const target = e.target as SVGElement;
       if (target === svgRef.current || target.classList.contains('canvas-bg')) {
         onClearSelection();
+        // Start marquee selection
+        const point = getSVGPoint(e.clientX, e.clientY);
+        setMarquee({ startX: point.x, startY: point.y, currentX: point.x, currentY: point.y });
       }
     }
   }, [mode, pan, getSVGPoint, drawingWire, onStartWire, onContinueWire, onClearSelection]);
@@ -109,17 +117,59 @@ export const CircuitCanvas: React.FC<Props> = ({
       return;
     }
 
+    if (marquee) {
+      setMarquee(prev => prev ? { ...prev, currentX: point.x, currentY: point.y } : null);
+      return;
+    }
+
     if (dragging) {
       const x = point.x - dragging.offsetX;
       const y = point.y - dragging.offsetY;
       onMoveComponent(dragging.id, x, y);
     }
-  }, [getSVGPoint, panning, dragging, setPan, onMoveComponent]);
+  }, [getSVGPoint, panning, dragging, marquee, setPan, onMoveComponent]);
 
   const handleMouseUp = useCallback(() => {
     if (panning) setPanning(null);
     if (dragging) setDragging(null);
-  }, [panning, dragging]);
+
+    if (marquee) {
+      // Find components within marquee rect
+      const x1 = Math.min(marquee.startX, marquee.currentX);
+      const y1 = Math.min(marquee.startY, marquee.currentY);
+      const x2 = Math.max(marquee.startX, marquee.currentX);
+      const y2 = Math.max(marquee.startY, marquee.currentY);
+
+      // Only select if marquee is big enough (not just a click)
+      if (Math.abs(x2 - x1) > 5 || Math.abs(y2 - y1) > 5) {
+        const hitIds: string[] = [];
+
+        components.forEach(comp => {
+          // Component bounding box ~60x30 centered at (comp.x, comp.y)
+          const compLeft = comp.x - 30;
+          const compRight = comp.x + 30;
+          const compTop = comp.y - 15;
+          const compBottom = comp.y + 15;
+
+          // Check overlap
+          if (compRight >= x1 && compLeft <= x2 && compBottom >= y1 && compTop <= y2) {
+            hitIds.push(comp.id);
+          }
+        });
+
+        wires.forEach(wire => {
+          const inRect = wire.points.some(p => p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2);
+          if (inRect) hitIds.push(wire.id);
+        });
+
+        if (hitIds.length > 0) {
+          onSelectMany(hitIds);
+        }
+      }
+
+      setMarquee(null);
+    }
+  }, [panning, dragging, marquee, components, wires, onSelectMany]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     if (mode === 'wire' && drawingWire) {
@@ -134,9 +184,10 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const type = e.dataTransfer.getData('componentType') as ComponentType;
+    const label = e.dataTransfer.getData('componentLabel');
     if (type) {
       const point = getSVGPoint(e.clientX, e.clientY);
-      onDrop(type, point.x, point.y);
+      onDrop(type, point.x, point.y, label || undefined);
     }
   }, [getSVGPoint, onDrop]);
 
@@ -160,20 +211,25 @@ export const CircuitCanvas: React.FC<Props> = ({
         onCancelWire();
         onClearSelection();
       }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Handled by parent
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCancelWire, onClearSelection]);
 
+  // Compute marquee rect for rendering
+  const marqueeRect = marquee ? {
+    x: Math.min(marquee.startX, marquee.currentX),
+    y: Math.min(marquee.startY, marquee.currentY),
+    width: Math.abs(marquee.currentX - marquee.startX),
+    height: Math.abs(marquee.currentY - marquee.startY),
+  } : null;
+
   return (
     <svg
       ref={svgRef}
       className="w-full h-full circuit-grid"
-      style={{ 
-        cursor: mode === 'wire' ? 'crosshair' : (panning ? 'grabbing' : 'default'),
+      style={{
+        cursor: mode === 'wire' ? 'crosshair' : (panning ? 'grabbing' : (marquee ? 'crosshair' : 'default')),
         background: 'hsl(var(--canvas-bg))',
         backgroundPosition: `${pan.x}px ${pan.y}px`,
       }}
@@ -185,9 +241,8 @@ export const CircuitCanvas: React.FC<Props> = ({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* Background rect for click detection */}
       <rect className="canvas-bg" x="-10000" y="-10000" width="20000" height="20000" fill="transparent" />
-      
+
       <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
         {/* Wires */}
         {wires.map(wire => (
@@ -201,7 +256,6 @@ export const CircuitCanvas: React.FC<Props> = ({
               style={{ cursor: 'pointer' }}
               onClick={(e) => { e.stopPropagation(); onSelectComponent(wire.id, e.shiftKey); }}
             />
-            {/* Connection dots */}
             {wire.points.map((p, i) => (
               (i === 0 || i === wire.points.length - 1) && (
                 <circle key={i} cx={p.x} cy={p.y} r={3} fill="hsl(var(--node-color))" />
@@ -212,21 +266,21 @@ export const CircuitCanvas: React.FC<Props> = ({
 
         {/* Drawing wire preview */}
         {drawingWire && drawingWire.length > 0 && (
-          <g>
-            <polyline
-              points={[...drawingWire, mousePos].map(p => `${p.x},${p.y}`).join(' ')}
-              fill="none"
-              stroke="hsl(var(--component-selected))"
-              strokeWidth={2}
-              strokeDasharray="6 3"
-              opacity={0.7}
-            />
-          </g>
+          <polyline
+            points={[...drawingWire, mousePos].map(p => `${p.x},${p.y}`).join(' ')}
+            fill="none"
+            stroke="hsl(var(--component-selected))"
+            strokeWidth={2}
+            strokeDasharray="6 3"
+            opacity={0.7}
+          />
         )}
 
         {/* Components */}
         {components.map(comp => {
           const isSelected = selectedIds.includes(comp.id);
+          const isJunction = comp.type === 'junction';
+
           return (
             <g
               key={comp.id}
@@ -236,7 +290,7 @@ export const CircuitCanvas: React.FC<Props> = ({
               onDoubleClick={(e) => handleComponentDblClick(e, comp)}
             >
               {/* Selection highlight */}
-              {isSelected && (
+              {isSelected && !isJunction && (
                 <rect
                   x={-35} y={-22} width={70} height={44}
                   fill="none"
@@ -246,7 +300,10 @@ export const CircuitCanvas: React.FC<Props> = ({
                   rx={4}
                 />
               )}
-              
+              {isSelected && isJunction && (
+                <circle cx={0} cy={0} r={10} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" />
+              )}
+
               {/* Symbol */}
               {renderSymbolOnCanvas(
                 comp.type,
@@ -254,14 +311,14 @@ export const CircuitCanvas: React.FC<Props> = ({
                 2,
                 60
               )}
-              
+
               {/* Label */}
               <text
                 x={0}
-                y={comp.rotation === 90 || comp.rotation === 270 ? 25 : -20}
-                fontSize={11}
+                y={isJunction ? -12 : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)}
+                fontSize={isJunction ? 13 : 11}
                 fontFamily="'JetBrains Mono', monospace"
-                fontWeight={500}
+                fontWeight={isJunction ? 700 : 500}
                 fill={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 25%, 35%)'}
                 textAnchor="middle"
                 style={{ pointerEvents: 'none', userSelect: 'none' }}
@@ -269,12 +326,31 @@ export const CircuitCanvas: React.FC<Props> = ({
                 {comp.label}
               </text>
 
-              {/* Connection points */}
-              <circle cx={-30} cy={0} r={4} fill="hsl(var(--node-color))" opacity={0.5} />
-              <circle cx={30} cy={0} r={4} fill="hsl(var(--node-color))" opacity={0.5} />
+              {/* Connection points (not for junctions) */}
+              {!isJunction && (
+                <>
+                  <circle cx={-30} cy={0} r={4} fill="hsl(var(--node-color))" opacity={0.5} />
+                  <circle cx={30} cy={0} r={4} fill="hsl(var(--node-color))" opacity={0.5} />
+                </>
+              )}
             </g>
           );
         })}
+
+        {/* Marquee selection rectangle */}
+        {marqueeRect && marqueeRect.width > 2 && (
+          <rect
+            x={marqueeRect.x}
+            y={marqueeRect.y}
+            width={marqueeRect.width}
+            height={marqueeRect.height}
+            fill="hsl(213, 70%, 45%, 0.08)"
+            stroke="hsl(213, 70%, 45%)"
+            strokeWidth={1}
+            strokeDasharray="6 3"
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
       </g>
 
       {/* Coordinates display */}

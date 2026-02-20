@@ -65,21 +65,36 @@ export const CircuitSymbolSVG: React.FC<Props> = ({
           </g>
         );
 
+      case 'battery_single':
+        return (
+          <g>
+            <line x1={-hw} y1={0} x2={-4} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <line x1={-4} y1={-hh * 0.5} x2={-4} y2={hh * 0.5} stroke={strokeColor} strokeWidth={sw + 1} />
+            <line x1={2} y1={-hh} x2={2} y2={hh} stroke={strokeColor} strokeWidth={sw} />
+            <line x1={2} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <text x={5} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="start">+</text>
+            <text x={-8} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="end">−</text>
+          </g>
+        );
+
       case 'battery':
         return (
           <g>
             <line x1={-hw} y1={0} x2={-8} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            {/* Short thick line (negative) */}
             <line x1={-8} y1={-hh * 0.5} x2={-8} y2={hh * 0.5} stroke={strokeColor} strokeWidth={sw + 1} />
-            {/* Long thin line (positive) */}
             <line x1={-2} y1={-hh} x2={-2} y2={hh} stroke={strokeColor} strokeWidth={sw} />
-            {/* Second cell */}
             <line x1={4} y1={-hh * 0.5} x2={4} y2={hh * 0.5} stroke={strokeColor} strokeWidth={sw + 1} />
             <line x1={10} y1={-hh} x2={10} y2={hh} stroke={strokeColor} strokeWidth={sw} />
             <line x1={10} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            {/* + and - labels */}
             <text x={12} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="start">+</text>
             <text x={-14} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="end">−</text>
+          </g>
+        );
+
+      case 'junction':
+        return (
+          <g>
+            <circle cx={0} cy={0} r={4} fill={strokeColor} />
           </g>
         );
 
@@ -246,6 +261,18 @@ export const renderSymbolOnCanvas = (
         </g>
       );
 
+    case 'battery_single':
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-4} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={-4} y1={-hh * 0.5} x2={-4} y2={hh * 0.5} stroke={strokeColor} strokeWidth={sw + 1} />
+          <line x1={2} y1={-hh} x2={2} y2={hh} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={2} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <text x={5} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="start">+</text>
+          <text x={-8} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="end">−</text>
+        </g>
+      );
+
     case 'battery':
       return (
         <g>
@@ -257,6 +284,13 @@ export const renderSymbolOnCanvas = (
           <line x1={10} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
           <text x={12} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="start">+</text>
           <text x={-14} y={-hh - 2} fontSize={8} fill={strokeColor} textAnchor="end">−</text>
+        </g>
+      );
+
+    case 'junction':
+      return (
+        <g>
+          <circle cx={0} cy={0} r={4} fill={strokeColor} />
         </g>
       );
 

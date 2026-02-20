@@ -69,6 +69,10 @@ export function useCircuitEditor() {
     }
   }, []);
 
+  const selectMany = useCallback((ids: string[]) => {
+    setSelectedIds(ids);
+  }, []);
+
   const clearSelection = useCallback(() => {
     setSelectedIds([]);
   }, []);
@@ -147,6 +151,7 @@ export function useCircuitEditor() {
     rotateComponent,
     deleteSelected,
     selectComponent,
+    selectMany,
     clearSelection,
     startDrawingWire,
     continueDrawingWire,

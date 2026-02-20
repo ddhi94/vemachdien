@@ -3,7 +3,8 @@ export type ComponentType =
   | 'variable_resistor' // Biến trở Rb
   | 'capacitor'      // Tụ điện C
   | 'inductor'       // Cuộn dây L
-  | 'battery'        // Nguồn điện U
+  | 'battery'        // Nguồn điện đôi U
+  | 'battery_single' // Nguồn điện đơn
   | 'switch_open'    // Khóa K mở
   | 'switch_closed'  // Khóa K đóng
   | 'bulb'           // Bóng đèn
@@ -13,6 +14,7 @@ export type ComponentType =
   | 'bell'           // Chuông điện
   | 'diode'          // Điốt
   | 'led'            // Đèn LED
+  | 'junction'       // Điểm nối A, B, C, D
   | 'wire';          // Dây dẫn
 
 export interface Point {
@@ -47,11 +49,12 @@ export interface PaletteItem {
   type: ComponentType;
   label: string;
   shortLabel: string;
-  category: 'passive' | 'source' | 'switch' | 'meter' | 'other';
+  category: 'passive' | 'source' | 'switch' | 'meter' | 'other' | 'point';
 }
 
 export const PALETTE_ITEMS: PaletteItem[] = [
-  { type: 'battery', label: 'Nguồn điện', shortLabel: 'U', category: 'source' },
+  { type: 'battery_single', label: 'Nguồn đơn', shortLabel: 'U₁', category: 'source' },
+  { type: 'battery', label: 'Nguồn đôi', shortLabel: 'U₂', category: 'source' },
   { type: 'resistor', label: 'Điện trở', shortLabel: 'R', category: 'passive' },
   { type: 'variable_resistor', label: 'Biến trở', shortLabel: 'Rb', category: 'passive' },
   { type: 'capacitor', label: 'Tụ điện', shortLabel: 'C', category: 'passive' },
@@ -65,6 +68,13 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'bell', label: 'Chuông điện', shortLabel: 'Ch', category: 'other' },
   { type: 'diode', label: 'Điốt', shortLabel: 'D', category: 'other' },
   { type: 'led', label: 'Đèn LED', shortLabel: 'LED', category: 'other' },
+  { type: 'junction', label: 'Điểm A', shortLabel: 'A', category: 'point' },
+  { type: 'junction', label: 'Điểm B', shortLabel: 'B', category: 'point' },
+  { type: 'junction', label: 'Điểm C', shortLabel: 'C', category: 'point' },
+  { type: 'junction', label: 'Điểm D', shortLabel: 'D', category: 'point' },
+  { type: 'junction', label: 'Điểm E', shortLabel: 'E', category: 'point' },
+  { type: 'junction', label: 'Điểm M', shortLabel: 'M', category: 'point' },
+  { type: 'junction', label: 'Điểm N', shortLabel: 'N', category: 'point' },
 ];
 
 export const GRID_SIZE = 20;

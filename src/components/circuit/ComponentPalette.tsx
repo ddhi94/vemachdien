@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { PALETTE_ITEMS, PaletteItem, ComponentType } from '@/types/circuit';
+import { PALETTE_ITEMS, ComponentType } from '@/types/circuit';
 import { CircuitSymbolSVG } from './CircuitSymbolSVG';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Props {
-  onDragStart: (type: ComponentType) => void;
+  onDragStart: (type: ComponentType, label?: string) => void;
 }
 
 const CATEGORIES: { key: string; label: string }[] = [
@@ -13,6 +13,7 @@ const CATEGORIES: { key: string; label: string }[] = [
   { key: 'switch', label: 'Công tắc / Khóa' },
   { key: 'meter', label: 'Dụng cụ đo' },
   { key: 'other', label: 'Khác' },
+  { key: 'point', label: 'Điểm nối' },
 ];
 
 export const ComponentPalette: React.FC<Props> = ({ onDragStart }) => {
@@ -47,18 +48,26 @@ export const ComponentPalette: React.FC<Props> = ({ onDragStart }) => {
                 {cat.label}
               </button>
               
-              {!isCollapsed && items.map(item => (
+              {!isCollapsed && items.map((item, idx) => (
                 <div
-                  key={item.type}
+                  key={`${item.type}_${item.shortLabel}_${idx}`}
                   className="palette-item"
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('componentType', item.type);
-                    onDragStart(item.type);
+                    e.dataTransfer.setData('componentLabel', item.label);
+                    onDragStart(item.type, item.label);
                   }}
                 >
                   <div className="flex-shrink-0" style={{ color: 'hsl(var(--palette-foreground))' }}>
-                    <CircuitSymbolSVG type={item.type} size={44} strokeColor="currentColor" />
+                    {item.type === 'junction' ? (
+                      <svg width={44} height={30} viewBox="-22 -15 44 30">
+                        <circle cx={0} cy={0} r={4} fill="currentColor" />
+                        <text x={0} y={-8} fontSize={12} fontWeight="bold" fill="currentColor" textAnchor="middle">{item.shortLabel}</text>
+                      </svg>
+                    ) : (
+                      <CircuitSymbolSVG type={item.type} size={44} strokeColor="currentColor" />
+                    )}
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-medium truncate" style={{ color: 'hsl(var(--palette-foreground))' }}>
