@@ -55,11 +55,33 @@ const Index = () => {
     const bounds = getContentBounds();
     const clone = svgElement.cloneNode(true) as SVGSVGElement;
     
-    // Remove the background rect, coordinates text, and set proper viewBox
+    // Remove the background rect, coordinates text
     clone.querySelectorAll('.canvas-bg').forEach(el => el.remove());
-    // Remove coordinate text (last text element)
     const texts = clone.querySelectorAll(':scope > text');
     texts.forEach(t => t.remove());
+
+    // Remove transparent hit-area elements (invisible in export but clutter the file)
+    clone.querySelectorAll('polyline[stroke="transparent"], line[stroke="transparent"], rect[fill="transparent"], circle[fill="transparent"]').forEach(el => el.remove());
+
+    // Resolve CSS variables to actual colors for standalone SVG
+    const rootStyle = getComputedStyle(document.documentElement);
+    const resolveVar = (val: string): string => {
+      const match = val.match(/hsl\(var\(--([^)]+)\)\)/);
+      if (match) {
+        const cssVal = rootStyle.getPropertyValue(`--${match[1]}`).trim();
+        if (cssVal) return `hsl(${cssVal})`;
+      }
+      return val;
+    };
+    clone.querySelectorAll('*').forEach(el => {
+      const htmlEl = el as SVGElement;
+      ['stroke', 'fill'].forEach(attr => {
+        const val = htmlEl.getAttribute(attr);
+        if (val && val.includes('var(--')) {
+          htmlEl.setAttribute(attr, resolveVar(val));
+        }
+      });
+    });
 
     // Find the transform group and remove pan/zoom transform
     const mainG = clone.querySelector('g');
