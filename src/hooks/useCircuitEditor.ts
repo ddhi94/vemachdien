@@ -259,6 +259,7 @@ export function useCircuitEditor() {
   // Find nearest connection point within threshold
   const findNearestConnectionPoint = useCallback((point: Point, threshold: number = 15): { compId: string; point: Point } | null => {
     let best: { compId: string; point: Point; dist: number } | null = null;
+    // Component connection points
     for (const comp of components) {
       const pts = getConnectionPoints(comp);
       for (const cp of pts) {
@@ -268,8 +269,17 @@ export function useCircuitEditor() {
         }
       }
     }
+    // Wire endpoint connection points
+    for (const wire of wires) {
+      for (const wp of [wire.points[0], wire.points[wire.points.length - 1]]) {
+        const dist = Math.hypot(wp.x - point.x, wp.y - point.y);
+        if (dist < threshold && (!best || dist < best.dist)) {
+          best = { compId: wire.id, point: wp, dist };
+        }
+      }
+    }
     return best ? { compId: best.compId, point: best.point } : null;
-  }, [components, getConnectionPoints]);
+  }, [components, wires, getConnectionPoints]);
 
   return {
     components,
