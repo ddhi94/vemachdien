@@ -1,5 +1,5 @@
 import React from 'react';
-import { MousePointer2, Pen, RotateCcw, Trash2, ZoomIn, ZoomOut, Download, FileText, RotateCw } from 'lucide-react';
+import { MousePointer2, Pen, RotateCcw, Trash2, ZoomIn, ZoomOut, Download, FileText, RotateCw, EyeOff, Eye } from 'lucide-react';
 
 interface Props {
   mode: 'select' | 'wire';
@@ -12,6 +12,8 @@ interface Props {
   onExport: () => void;
   onRotate: () => void;
   hasSelection: boolean;
+  hideNodes: boolean;
+  onToggleHideNodes: () => void;
 }
 
 export const EditorToolbar: React.FC<Props> = ({
@@ -25,6 +27,8 @@ export const EditorToolbar: React.FC<Props> = ({
   onExport,
   onRotate,
   hasSelection,
+  hideNodes,
+  onToggleHideNodes,
 }) => {
   const btnBase = "flex items-center justify-center w-9 h-9 rounded-md transition-colors duration-150";
   const btnActive = "bg-primary text-primary-foreground";
@@ -74,6 +78,16 @@ export const EditorToolbar: React.FC<Props> = ({
       </button>
       <button className={`${btnBase} ${btnDefault}`} onClick={onZoomIn} title="Phóng to">
         <ZoomIn size={16} />
+      </button>
+
+      <div className="w-px h-6 bg-border mx-1" />
+
+      <button
+        className={`${btnBase} ${hideNodes ? btnActive : btnDefault}`}
+        onClick={onToggleHideNodes}
+        title={hideNodes ? 'Hiện node (H)' : 'Ẩn node không tên (H)'}
+      >
+        {hideNodes ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
 
       <div className="flex-1" />
