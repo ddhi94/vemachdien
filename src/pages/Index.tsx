@@ -12,8 +12,8 @@ const Index = () => {
   const [mode, setMode] = useState<'select' | 'wire'>('select');
   const [dragType, setDragType] = useState<ComponentType | null>(null);
 
-  const handleDrop = useCallback((type: ComponentType, x: number, y: number) => {
-    editor.addComponent(type, x, y, type);
+  const handleDrop = useCallback((type: ComponentType, x: number, y: number, label?: string) => {
+    editor.addComponent(type, x, y, label || type);
   }, [editor]);
 
   const handleExport = useCallback(() => {
@@ -108,6 +108,7 @@ const Index = () => {
               setPan={editor.setPan}
               onDrop={handleDrop}
               onSelectComponent={editor.selectComponent}
+              onSelectMany={editor.selectMany}
               onMoveComponent={editor.moveComponent}
               onRotateComponent={editor.rotateComponent}
               onClearSelection={editor.clearSelection}
