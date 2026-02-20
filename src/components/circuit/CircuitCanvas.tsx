@@ -520,6 +520,13 @@ export const CircuitCanvas: React.FC<Props> = ({
                   onMouseDown={(e) => handleComponentMouseDown(e, comp)}
                   onDoubleClick={(e) => handleComponentDblClick(e, comp)}
                 >
+                  {/* Invisible hit area for easy clicking/dragging */}
+                  {isPointLike ? (
+                    <circle cx={0} cy={0} r={15} fill="transparent" />
+                  ) : (
+                    <rect x={-35} y={-22} width={70} height={44} fill="transparent" />
+                  )}
+
                   {/* Selection highlight */}
                   {isSelected && !isPointLike && (
                     <rect x={-35} y={-22} width={70} height={44} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" rx={4} />
