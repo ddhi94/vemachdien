@@ -65,6 +65,18 @@ export const ComponentPalette: React.FC<Props> = ({ onDragStart }) => {
                         <circle cx={0} cy={0} r={4} fill="currentColor" />
                         <text x={0} y={-8} fontSize={12} fontWeight="bold" fill="currentColor" textAnchor="middle">{item.shortLabel}</text>
                       </svg>
+                    ) : item.type === 'terminal_positive' ? (
+                      <svg width={44} height={30} viewBox="-22 -15 44 30">
+                        <line x1={-18} y1={0} x2={-6} y2={0} stroke="currentColor" strokeWidth={2} />
+                        <circle cx={-6} cy={0} r={4} fill="none" stroke="currentColor" strokeWidth={2} />
+                        <text x={8} y={5} fontSize={14} fontWeight="bold" fill="currentColor" textAnchor="middle">+</text>
+                      </svg>
+                    ) : item.type === 'terminal_negative' ? (
+                      <svg width={44} height={30} viewBox="-22 -15 44 30">
+                        <line x1={18} y1={0} x2={6} y2={0} stroke="currentColor" strokeWidth={2} />
+                        <circle cx={6} cy={0} r={4} fill="none" stroke="currentColor" strokeWidth={2} />
+                        <text x={-8} y={5} fontSize={14} fontWeight="bold" fill="currentColor" textAnchor="middle">−</text>
+                      </svg>
                     ) : (
                       <CircuitSymbolSVG type={item.type} size={44} strokeColor="currentColor" />
                     )}
