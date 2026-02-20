@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['Inter', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,6 +50,32 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        canvas: {
+          DEFAULT: "hsl(var(--canvas-bg))",
+          grid: "hsl(var(--canvas-grid))",
+          "grid-major": "hsl(var(--canvas-grid-major))",
+        },
+        palette: {
+          DEFAULT: "hsl(var(--palette-bg))",
+          foreground: "hsl(var(--palette-foreground))",
+          hover: "hsl(var(--palette-hover))",
+          active: "hsl(var(--palette-active))",
+        },
+        circuit: {
+          wire: "hsl(var(--wire-color))",
+          stroke: "hsl(var(--component-stroke))",
+          fill: "hsl(var(--component-fill))",
+          selected: "hsl(var(--component-selected))",
+          node: "hsl(var(--node-color))",
+        },
+        toolbar: {
+          DEFAULT: "hsl(var(--toolbar-bg))",
+          border: "hsl(var(--toolbar-border))",
+        },
+        status: {
+          DEFAULT: "hsl(var(--status-bar))",
+          foreground: "hsl(var(--status-foreground))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
