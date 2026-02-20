@@ -207,6 +207,7 @@ const Index = () => {
               onSelectComponent={editor.selectComponent}
               onSelectMany={editor.selectMany}
               onMoveComponent={editor.moveComponent}
+              onMoveSelected={editor.moveSelected}
               onRotateComponent={editor.rotateComponent}
               onToggleSwitch={editor.toggleSwitch}
               onClearSelection={editor.clearSelection}
@@ -217,6 +218,7 @@ const Index = () => {
               onAddJunctionOnWire={editor.addJunctionOnWire}
               getConnectionPoints={editor.getConnectionPoints}
               findNearestConnectionPoint={editor.findNearestConnectionPoint}
+              pushHistory={editor.pushHistory}
               mode={mode}
               hideNodes={hideNodes}
             />

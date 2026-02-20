@@ -14,6 +14,7 @@ interface Props {
   onSelectComponent: (id: string, multi: boolean) => void;
   onSelectMany: (ids: string[]) => void;
   onMoveComponent: (id: string, x: number, y: number) => void;
+  onMoveSelected: (ids: string[], dx: number, dy: number) => void;
   onRotateComponent: (id: string) => void;
   onToggleSwitch: (id: string) => void;
   onClearSelection: () => void;
@@ -24,6 +25,7 @@ interface Props {
   onAddJunctionOnWire: (wireId: string, point: Point, label: string) => void;
   getConnectionPoints: (comp: CircuitComponent) => Point[];
   findNearestConnectionPoint: (point: Point, threshold?: number) => { compId: string; point: Point } | null;
+  pushHistory: () => void;
   mode: 'select' | 'wire';
   hideNodes: boolean;
 }
@@ -49,6 +51,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   onSelectComponent,
   onSelectMany,
   onMoveComponent,
+  onMoveSelected,
   onRotateComponent,
   onToggleSwitch,
   onClearSelection,
@@ -59,11 +62,12 @@ export const CircuitCanvas: React.FC<Props> = ({
   onAddJunctionOnWire,
   getConnectionPoints,
   findNearestConnectionPoint,
+  pushHistory,
   mode,
   hideNodes,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number; isGroup: boolean } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [rawMousePos, setRawMousePos] = useState<Point>({ x: 0, y: 0 });
@@ -205,9 +209,21 @@ export const CircuitCanvas: React.FC<Props> = ({
     if (dragging) {
       const x = point.x - dragging.offsetX;
       const y = point.y - dragging.offsetY;
-      onMoveComponent(dragging.id, x, y);
+      if (dragging.isGroup) {
+        const sx = snapToGrid(x);
+        const sy = snapToGrid(y);
+        const dx = sx - dragging.startX;
+        const dy = sy - dragging.startY;
+        if (dx !== 0 || dy !== 0) {
+          onMoveSelected(selectedIds, dx, dy);
+          // Update start position for next delta
+          setDragging(prev => prev ? { ...prev, startX: sx, startY: sy } : null);
+        }
+      } else {
+        onMoveComponent(dragging.id, x, y);
+      }
     }
-  }, [getSVGPoint, panning, dragging, marquee, wireDrawing, drawingWire, mode, setPan, onMoveComponent, findNearestConnectionPoint]);
+  }, [getSVGPoint, panning, dragging, marquee, wireDrawing, drawingWire, mode, setPan, onMoveComponent, onMoveSelected, selectedIds, findNearestConnectionPoint]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (panning) setPanning(null);
@@ -286,11 +302,26 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleComponentMouseDown = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
     e.stopPropagation();
     if (mode === 'select') {
-      onSelectComponent(comp.id, e.shiftKey);
+      const isAlreadySelected = selectedIds.includes(comp.id);
+      if (!isAlreadySelected && !e.shiftKey) {
+        onSelectComponent(comp.id, false);
+      } else if (e.shiftKey) {
+        onSelectComponent(comp.id, true);
+      }
       const point = getSVGPoint(e.clientX, e.clientY);
-      setDragging({ id: comp.id, offsetX: point.x - comp.x, offsetY: point.y - comp.y });
+      // Push history before drag starts
+      pushHistory();
+      const isGroup = selectedIds.includes(comp.id) && selectedIds.length > 1;
+      setDragging({
+        id: comp.id,
+        offsetX: point.x - comp.x,
+        offsetY: point.y - comp.y,
+        startX: comp.x,
+        startY: comp.y,
+        isGroup: isGroup || (isAlreadySelected && selectedIds.length > 1),
+      });
     }
-  }, [mode, getSVGPoint, onSelectComponent]);
+  }, [mode, getSVGPoint, onSelectComponent, selectedIds, pushHistory]);
 
   const handleComponentDblClick = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
     e.stopPropagation();
