@@ -113,10 +113,12 @@ const Index = () => {
               onRotateComponent={editor.rotateComponent}
               onClearSelection={editor.clearSelection}
               onStartWire={editor.startDrawingWire}
-              onContinueWire={editor.continueDrawingWire}
               onFinishWire={editor.finishDrawingWire}
               onCancelWire={editor.cancelDrawingWire}
               onZoom={editor.handleZoom}
+              onAddJunctionOnWire={editor.addJunctionOnWire}
+              getConnectionPoints={editor.getConnectionPoints}
+              findNearestConnectionPoint={editor.findNearestConnectionPoint}
               mode={mode}
             />
           </div>
@@ -136,7 +138,7 @@ const Index = () => {
           {editor.selectedIds.length > 0 && ` · ${editor.selectedIds.length} đã chọn`}
         </span>
         <span>
-          {mode === 'select' ? 'Chọn (V)' : 'Vẽ dây (W)'} · Nhấp đúp để xoay · Alt+kéo để cuộn
+          {mode === 'select' ? 'Chọn (V)' : 'Vẽ dây (W)'} · Kéo từ chấm tròn để nối dây · Nhấp dây để thêm điểm · Nhấp đúp để xoay
         </span>
       </div>
     </div>
