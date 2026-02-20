@@ -257,7 +257,7 @@ export function useCircuitEditor() {
   }, []);
 
   // Find nearest connection point within threshold
-  const findNearestConnectionPoint = useCallback((point: Point, threshold: number = 15): { compId: string; point: Point } | null => {
+  const findNearestConnectionPoint = useCallback((point: Point, threshold: number = 30): { compId: string; point: Point } | null => {
     let best: { compId: string; point: Point; dist: number } | null = null;
     // Component connection points
     for (const comp of components) {
