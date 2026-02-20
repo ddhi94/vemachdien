@@ -1,5 +1,5 @@
 import React from 'react';
-import { MousePointer2, Pen, RotateCcw, Trash2, ZoomIn, ZoomOut, Download, FileText, RotateCw, EyeOff, Eye } from 'lucide-react';
+import { MousePointer2, Pen, RotateCcw, Trash2, ZoomIn, ZoomOut, Download, FileText, RotateCw, EyeOff, Eye, Tag } from 'lucide-react';
 
 interface Props {
   mode: 'select' | 'wire';
@@ -16,6 +16,8 @@ interface Props {
   hasSelection: boolean;
   hideNodes: boolean;
   onToggleHideNodes: () => void;
+  showLabels: boolean;
+  onToggleShowLabels: () => void;
 }
 
 export const EditorToolbar: React.FC<Props> = ({
@@ -33,6 +35,8 @@ export const EditorToolbar: React.FC<Props> = ({
   hasSelection,
   hideNodes,
   onToggleHideNodes,
+  showLabels,
+  onToggleShowLabels,
 }) => {
   const btnBase = "flex items-center justify-center w-9 h-9 rounded-md transition-colors duration-150";
   const btnActive = "bg-primary text-primary-foreground";
@@ -92,6 +96,13 @@ export const EditorToolbar: React.FC<Props> = ({
         title={hideNodes ? 'Hiện node (H)' : 'Ẩn node không tên (H)'}
       >
         {hideNodes ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+      <button
+        className={`${btnBase} ${showLabels ? btnActive : btnDefault}`}
+        onClick={onToggleShowLabels}
+        title={showLabels ? 'Ẩn tên linh kiện (L)' : 'Hiện tên linh kiện (L)'}
+      >
+        <Tag size={16} />
       </button>
 
       <div className="flex-1" />

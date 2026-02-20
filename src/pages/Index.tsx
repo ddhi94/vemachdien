@@ -12,6 +12,7 @@ const Index = () => {
   const [mode, setMode] = useState<'select' | 'wire'>('select');
   const [dragType, setDragType] = useState<ComponentType | null>(null);
   const [hideNodes, setHideNodes] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
 
   const handleDrop = useCallback((type: ComponentType, x: number, y: number, label?: string) => {
     editor.addComponent(type, x, y, label || type);
@@ -137,6 +138,7 @@ const Index = () => {
       if (e.key === 'v' || e.key === 'V') setMode('select');
       if (e.key === 'w' || e.key === 'W') setMode('wire');
       if (e.key === 'h' || e.key === 'H') setHideNodes(prev => !prev);
+      if (e.key === 'l' || e.key === 'L') setShowLabels(prev => !prev);
       if (e.key === 'r' || e.key === 'R') handleRotate();
       if ((e.key === 'Delete' || e.key === 'Backspace') && editor.selectedIds.length > 0) {
         editor.deleteSelected();
@@ -191,6 +193,8 @@ const Index = () => {
             hasSelection={editor.selectedIds.length > 0}
             hideNodes={hideNodes}
             onToggleHideNodes={() => setHideNodes(prev => !prev)}
+            showLabels={showLabels}
+            onToggleShowLabels={() => setShowLabels(prev => !prev)}
           />
           
           {/* Canvas */}
@@ -224,6 +228,7 @@ const Index = () => {
               pushHistory={editor.pushHistory}
               mode={mode}
               hideNodes={hideNodes}
+              showLabels={showLabels}
             />
           </div>
 
