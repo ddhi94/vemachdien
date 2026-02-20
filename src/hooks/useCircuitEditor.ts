@@ -222,6 +222,16 @@ export function useCircuitEditor() {
     }
   }, [history]);
 
+  const toggleSwitch = useCallback((id: string) => {
+    setComponents(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      if (c.type === 'switch_open') return { ...c, type: 'switch_closed' as ComponentType };
+      if (c.type === 'switch_closed') return { ...c, type: 'switch_open' as ComponentType };
+      return c;
+    }));
+    saveHistory();
+  }, [saveHistory]);
+
   const clearAll = useCallback(() => {
     setComponents([]);
     setWires([]);
@@ -281,6 +291,7 @@ export function useCircuitEditor() {
     cancelDrawingWire,
     addWire,
     addJunctionOnWire,
+    toggleSwitch,
     undo,
     clearAll,
     loadParsedCircuit,

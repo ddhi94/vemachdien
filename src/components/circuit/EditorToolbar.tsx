@@ -9,7 +9,9 @@ interface Props {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onClear: () => void;
-  onExport: () => void;
+  onExportSVG: () => void;
+  onExportPNG: () => void;
+  onExportJPG: () => void;
   onRotate: () => void;
   hasSelection: boolean;
   hideNodes: boolean;
@@ -24,7 +26,9 @@ export const EditorToolbar: React.FC<Props> = ({
   onZoomIn,
   onZoomOut,
   onClear,
-  onExport,
+  onExportSVG,
+  onExportPNG,
+  onExportJPG,
   onRotate,
   hasSelection,
   hideNodes,
@@ -96,8 +100,22 @@ export const EditorToolbar: React.FC<Props> = ({
       <button className={`${btnBase} ${btnDefault}`} onClick={onClear} title="Xóa tất cả">
         <FileText size={16} />
       </button>
-      <button className={`${btnBase} ${btnDefault}`} onClick={onExport} title="Xuất ảnh">
+      <button className={`${btnBase} ${btnDefault}`} onClick={onExportSVG} title="Xuất SVG">
         <Download size={16} />
+      </button>
+      <button
+        className={`${btnBase} ${btnDefault} text-[9px] font-bold`}
+        onClick={onExportPNG}
+        title="Xuất PNG"
+      >
+        PNG
+      </button>
+      <button
+        className={`${btnBase} ${btnDefault} text-[9px] font-bold`}
+        onClick={onExportJPG}
+        title="Xuất JPG"
+      >
+        JPG
       </button>
     </div>
   );

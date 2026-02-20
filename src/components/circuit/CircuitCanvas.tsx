@@ -15,6 +15,7 @@ interface Props {
   onSelectMany: (ids: string[]) => void;
   onMoveComponent: (id: string, x: number, y: number) => void;
   onRotateComponent: (id: string) => void;
+  onToggleSwitch: (id: string) => void;
   onClearSelection: () => void;
   onStartWire: (p: Point) => void;
   onFinishWire: (endPoint?: Point) => void;
@@ -49,6 +50,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   onSelectMany,
   onMoveComponent,
   onRotateComponent,
+  onToggleSwitch,
   onClearSelection,
   onStartWire,
   onFinishWire,
@@ -276,8 +278,12 @@ export const CircuitCanvas: React.FC<Props> = ({
 
   const handleComponentDblClick = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
     e.stopPropagation();
-    onRotateComponent(comp.id);
-  }, [onRotateComponent]);
+    if (comp.type === 'switch_open' || comp.type === 'switch_closed') {
+      onToggleSwitch(comp.id);
+    } else {
+      onRotateComponent(comp.id);
+    }
+  }, [onRotateComponent, onToggleSwitch]);
 
   // Click on wire to add junction
   const handleWireClick = useCallback((e: React.MouseEvent, wireId: string) => {
@@ -408,12 +414,24 @@ export const CircuitCanvas: React.FC<Props> = ({
                 strokeLinejoin="round"
                 style={{ cursor: 'pointer', pointerEvents: 'none' }}
               />
-              {/* Endpoint dots - hide when hideNodes is on and not drawing */}
-              {!(hideNodes && !drawingWire && !wireDrawing) && wire.points.map((p, i) => (
-                (i === 0 || i === wire.points.length - 1) && (
-                  <circle key={i} cx={p.x} cy={p.y} r={3} fill="hsl(var(--node-color))" />
-                )
-              ))}
+              {/* Endpoint dots - interactive for starting wires */}
+              {wire.points.map((p, i) => {
+                if (i !== 0 && i !== wire.points.length - 1) return null;
+                if (hideNodes && !drawingWire && !wireDrawing) return null;
+                const isEndpointHovered = hoveredNode === null && 
+                  Math.hypot(rawMousePos.x - p.x, rawMousePos.y - p.y) < 15;
+                return (
+                  <g key={i}>
+                    <circle cx={p.x} cy={p.y} r={3} fill="hsl(var(--node-color))" />
+                    <circle 
+                      cx={p.x} cy={p.y} r={isEndpointHovered ? 8 : 6} 
+                      fill="transparent" 
+                      style={{ cursor: 'crosshair' }}
+                      onMouseDown={(e) => handleNodeMouseDown(e, { x: p.x, y: p.y })}
+                    />
+                  </g>
+                );
+              })}
             </g>
           ))}
 

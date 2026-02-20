@@ -239,7 +239,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <line x1={-hw} y1={0} x2={-hw + 12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <rect x={-hw + 12} y={-hh / 1.5} width={size - 24} height={hh * 1.33} fill="hsl(0, 0%, 100%)" stroke={strokeColor} strokeWidth={sw} />
+          <rect x={-hw + 12} y={-hh / 1.5} width={size - 24} height={hh * 1.33} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <line x1={hw - 12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
@@ -248,7 +248,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <line x1={-hw} y1={0} x2={-hw + 12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <rect x={-hw + 12} y={-hh / 1.5} width={size - 24} height={hh * 1.33} fill="hsl(0, 0%, 100%)" stroke={strokeColor} strokeWidth={sw} />
+          <rect x={-hw + 12} y={-hh / 1.5} width={size - 24} height={hh * 1.33} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <line x1={hw - 12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
           <line x1={-hw + 16} y1={hh} x2={hw - 10} y2={-hh * 0.8} stroke={strokeColor} strokeWidth={sw} />
           <polygon points={`${hw - 10},${-hh * 0.8} ${hw - 16},${-hh * 0.3} ${hw - 14},${-hh * 0.9}`} fill={strokeColor} />
@@ -352,7 +352,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <circle cx={0} cy={0} r={12} fill="hsl(0, 0%, 100%)" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={12} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <line x1={-8} y1={-8} x2={8} y2={8} stroke={strokeColor} strokeWidth={sw} />
           <line x1={8} y1={-8} x2={-8} y2={8} stroke={strokeColor} strokeWidth={sw} />
           <line x1={12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
@@ -363,7 +363,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <circle cx={0} cy={0} r={14} fill="hsl(0, 0%, 100%)" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={14} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">A</text>
           <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
@@ -373,7 +373,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <circle cx={0} cy={0} r={14} fill="hsl(0, 0%, 100%)" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={14} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">V</text>
           <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
@@ -383,7 +383,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <line x1={-hw} y1={0} x2={-hw + 12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <rect x={-hw + 12} y={-hh / 2} width={size - 24} height={hh} fill="hsl(0, 0%, 100%)" stroke={strokeColor} strokeWidth={sw} />
+          <rect x={-hw + 12} y={-hh / 2} width={size - 24} height={hh} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <line x1={-hw + 14} y1={0} x2={hw - 14} y2={0} stroke={strokeColor} strokeWidth={1} />
           <line x1={hw - 12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
@@ -393,7 +393,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <circle cx={0} cy={-2} r={10} fill="hsl(0, 0%, 100%)" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={-2} r={10} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <path d={`M -3 8 Q 0 12 3 8`} fill="none" stroke={strokeColor} strokeWidth={sw} />
           <line x1={12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
