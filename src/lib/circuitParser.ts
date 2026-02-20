@@ -320,20 +320,8 @@ function layoutNode(
       ],
     });
     
-    // Input/output wires at center height
-    wires.push({
-      id: `wire_${idCounter++}`,
-      points: [
-        { x: busLeftX - 30, y: cy },
-        { x: busLeftX, y: cy },
-      ],
-    });
-    
-    // Connect bus to center if needed (vertical segments from cy to bus)
-    if (topBranchY < cy) {
-      // cy is somewhere between branches - the bus already covers it
-    } else {
-      // Bus might not reach cy
+    // Connect bus to center y if bus doesn't reach it
+    if (topBranchY > cy) {
       wires.push({
         id: `wire_${idCounter++}`,
         points: [
@@ -341,19 +329,34 @@ function layoutNode(
           { x: busLeftX, y: topBranchY },
         ],
       });
+      wires.push({
+        id: `wire_${idCounter++}`,
+        points: [
+          { x: busRightX, y: cy },
+          { x: busRightX, y: topBranchY },
+        ],
+      });
+    }
+    if (bottomBranchY < cy) {
+      wires.push({
+        id: `wire_${idCounter++}`,
+        points: [
+          { x: busLeftX, y: bottomBranchY },
+          { x: busLeftX, y: cy },
+        ],
+      });
+      wires.push({
+        id: `wire_${idCounter++}`,
+        points: [
+          { x: busRightX, y: bottomBranchY },
+          { x: busRightX, y: cy },
+        ],
+      });
     }
     
-    wires.push({
-      id: `wire_${idCounter++}`,
-      points: [
-        { x: busRightX, y: cy },
-        { x: busRightX + 30, y: cy },
-      ],
-    });
-    
     return {
-      leftX: busLeftX - 30,
-      rightX: busRightX + 30,
+      leftX: busLeftX,
+      rightX: busRightX,
       topY: topBranchY - COMP_H / 2,
       bottomY: bottomBranchY + COMP_H / 2,
     };
