@@ -22,6 +22,11 @@ function calcConnectionPoints(comp: CircuitComponent): Point[] {
   ];
 }
 
+interface HistoryState {
+  components: CircuitComponent[];
+  wires: Wire[];
+}
+
 export function useCircuitEditor() {
   const [components, setComponents] = useState<CircuitComponent[]>([]);
   const [wires, setWires] = useState<Wire[]>([]);
@@ -29,19 +34,44 @@ export function useCircuitEditor() {
   const [drawingWire, setDrawingWire] = useState<Point[] | null>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [history, setHistory] = useState<{ components: CircuitComponent[]; wires: Wire[] }[]>([]);
-  const historyIndex = useRef(-1);
 
-  const saveHistory = useCallback(() => {
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex.current + 1);
-      newHistory.push({ components: [...components], wires: [...wires] });
-      historyIndex.current = newHistory.length - 1;
-      return newHistory;
-    });
-  }, [components, wires]);
+  // History system using refs for reliable snapshots
+  const historyStack = useRef<HistoryState[]>([]);
+  const historyIndex = useRef(-1);
+  const isUndoing = useRef(false);
+
+  // Snapshot current state BEFORE a mutation
+  const pushHistory = useCallback(() => {
+    if (isUndoing.current) return;
+    // Use functional reads to get current state
+    let currentComps: CircuitComponent[] = [];
+    let currentWires: Wire[] = [];
+    setComponents(prev => { currentComps = prev; return prev; });
+    setWires(prev => { currentWires = prev; return prev; });
+
+    // Trim any future states if we undid something
+    const stack = historyStack.current.slice(0, historyIndex.current + 1);
+    stack.push({ components: [...currentComps], wires: [...currentWires] });
+    // Limit history size
+    if (stack.length > 50) stack.shift();
+    historyStack.current = stack;
+    historyIndex.current = stack.length - 1;
+  }, []);
+
+  const undo = useCallback(() => {
+    if (historyIndex.current <= 0) return;
+    isUndoing.current = true;
+    historyIndex.current--;
+    const state = historyStack.current[historyIndex.current];
+    setComponents([...state.components]);
+    setWires([...state.wires]);
+    setSelectedIds([]);
+    // Use timeout to reset flag after state updates
+    setTimeout(() => { isUndoing.current = false; }, 0);
+  }, []);
 
   const addComponent = useCallback((type: ComponentType, x: number, y: number, label?: string) => {
+    pushHistory();
     const comp: CircuitComponent = {
       id: genId(),
       type,
@@ -51,9 +81,8 @@ export function useCircuitEditor() {
       label: label || type,
     };
     setComponents(prev => [...prev, comp]);
-    saveHistory();
     return comp;
-  }, [saveHistory]);
+  }, [pushHistory]);
 
   const moveComponent = useCallback((id: string, x: number, y: number) => {
     const sx = snapToGrid(x);
@@ -69,11 +98,6 @@ export function useCircuitEditor() {
 
       // Get old connection points before move
       const oldPts = calcConnectionPoints(oldComp);
-
-      // Update component position
-      const newComps = prev.map(c => c.id === id ? { ...c, x: sx, y: sy } : c);
-
-      // Get new connection points after move
       const newComp = { ...oldComp, x: sx, y: sy };
       const newPts = calcConnectionPoints(newComp);
 
@@ -83,12 +107,12 @@ export function useCircuitEditor() {
         ptMap.push({ old: oldPts[i], new: newPts[i] });
       }
 
-      // Update wires that are connected to these points
+      // Update wires that are connected to these points — use threshold 5 for reliability
       setWires(prevWires => prevWires.map(wire => {
         let changed = false;
         const newPoints = wire.points.map(wp => {
           for (const pm of ptMap) {
-            if (Math.abs(wp.x - pm.old.x) < 2 && Math.abs(wp.y - pm.old.y) < 2) {
+            if (Math.abs(wp.x - pm.old.x) < 5 && Math.abs(wp.y - pm.old.y) < 5) {
               changed = true;
               return { x: pm.new.x, y: pm.new.y };
             }
@@ -98,22 +122,98 @@ export function useCircuitEditor() {
         return changed ? { ...wire, points: newPoints } : wire;
       }));
 
-      return newComps;
+      return prev.map(c => c.id === id ? newComp : c);
+    });
+  }, []);
+
+  // Move multiple selected components + their connected wires as a group
+  const moveSelected = useCallback((ids: string[], dx: number, dy: number) => {
+    if (dx === 0 && dy === 0) return;
+
+    setComponents(prev => {
+      // Collect all old connection points for selected components
+      const allOldPts: { old: Point; new: Point }[] = [];
+      const selectedComps = prev.filter(c => ids.includes(c.id));
+
+      selectedComps.forEach(comp => {
+        const oldPts = calcConnectionPoints(comp);
+        const newComp = { ...comp, x: comp.x + dx, y: comp.y + dy };
+        const newPts = calcConnectionPoints(newComp);
+        for (let i = 0; i < oldPts.length; i++) {
+          allOldPts.push({ old: oldPts[i], new: newPts[i] });
+        }
+      });
+
+      // Move wires connected to selected components
+      setWires(prevWires => {
+        // Also move wires that are fully selected
+        const selectedWireIds = new Set(ids.filter(id => prevWires.some(w => w.id === id)));
+
+        return prevWires.map(wire => {
+          // If wire itself is selected, move all its points
+          if (selectedWireIds.has(wire.id)) {
+            return {
+              ...wire,
+              points: wire.points.map(wp => ({ x: wp.x + dx, y: wp.y + dy })),
+            };
+          }
+
+          // Otherwise, move only points connected to selected components
+          let changed = false;
+          const newPoints = wire.points.map(wp => {
+            for (const pm of allOldPts) {
+              if (Math.abs(wp.x - pm.old.x) < 5 && Math.abs(wp.y - pm.old.y) < 5) {
+                changed = true;
+                return { x: pm.new.x, y: pm.new.y };
+              }
+            }
+            return wp;
+          });
+          return changed ? { ...wire, points: newPoints } : wire;
+        });
+      });
+
+      // Move selected components
+      return prev.map(c => ids.includes(c.id) ? { ...c, x: c.x + dx, y: c.y + dy } : c);
     });
   }, []);
 
   const rotateComponent = useCallback((id: string) => {
-    setComponents(prev => prev.map(c =>
-      c.id === id ? { ...c, rotation: (c.rotation + 90) % 360 } : c
-    ));
-  }, []);
+    pushHistory();
+    setComponents(prev => {
+      const comp = prev.find(c => c.id === id);
+      if (!comp) return prev;
+
+      const oldPts = calcConnectionPoints(comp);
+      const newComp = { ...comp, rotation: (comp.rotation + 90) % 360 };
+      const newPts = calcConnectionPoints(newComp);
+
+      // Update connected wires
+      const ptMap = oldPts.map((old, i) => ({ old, new: newPts[i] }));
+      setWires(prevWires => prevWires.map(wire => {
+        let changed = false;
+        const newPoints = wire.points.map(wp => {
+          for (const pm of ptMap) {
+            if (Math.abs(wp.x - pm.old.x) < 5 && Math.abs(wp.y - pm.old.y) < 5) {
+              changed = true;
+              return { x: pm.new.x, y: pm.new.y };
+            }
+          }
+          return wp;
+        });
+        return changed ? { ...wire, points: newPoints } : wire;
+      }));
+
+      return prev.map(c => c.id === id ? newComp : c);
+    });
+  }, [pushHistory]);
 
   const deleteSelected = useCallback(() => {
+    pushHistory();
     setComponents(prev => prev.filter(c => !selectedIds.includes(c.id)));
     setWires(prev => prev.filter(w => !selectedIds.includes(w.id)));
     setSelectedIds([]);
-    saveHistory();
-  }, [selectedIds, saveHistory]);
+  }, [selectedIds, pushHistory]);
 
   const selectComponent = useCallback((id: string, multi = false) => {
     if (multi) {
@@ -134,10 +234,10 @@ export function useCircuitEditor() {
   }, []);
 
   const addWire = useCallback((points: Point[]) => {
+    pushHistory();
     const wire: Wire = { id: genWireId(), points };
     setWires(prev => [...prev, wire]);
-    saveHistory();
-  }, [saveHistory]);
+  }, [pushHistory]);
 
   const startDrawingWire = useCallback((point: Point) => {
     setDrawingWire([{ x: snapToGrid(point.x), y: snapToGrid(point.y) }]);
@@ -147,6 +247,7 @@ export function useCircuitEditor() {
     if (drawingWire && drawingWire.length >= 1) {
       let finalPoints = [...drawingWire];
       if (endPoint) {
+        // Use exact endpoint (already snapped by caller)
         const snapped = { x: snapToGrid(endPoint.x), y: snapToGrid(endPoint.y) };
         const last = finalPoints[finalPoints.length - 1];
         // Orthogonal routing
@@ -168,9 +269,9 @@ export function useCircuitEditor() {
 
   // Add a junction point on an existing wire
   const addJunctionOnWire = useCallback((wireId: string, point: Point, label: string) => {
+    pushHistory();
     const snapped = { x: snapToGrid(point.x), y: snapToGrid(point.y) };
 
-    // Add junction component
     const junctionComp: CircuitComponent = {
       id: genId(),
       type: 'junction',
@@ -181,12 +282,10 @@ export function useCircuitEditor() {
     };
     setComponents(prev => [...prev, junctionComp]);
 
-    // Split the wire at this point
     setWires(prev => {
       const wire = prev.find(w => w.id === wireId);
       if (!wire) return prev;
 
-      // Find closest segment
       let bestSegIdx = 0;
       let bestDist = Infinity;
       for (let i = 0; i < wire.points.length - 1; i++) {
@@ -199,7 +298,6 @@ export function useCircuitEditor() {
         }
       }
 
-      // Split into two wires
       const wire1Points = [...wire.points.slice(0, bestSegIdx + 1), snapped];
       const wire2Points = [snapped, ...wire.points.slice(bestSegIdx + 1)];
 
@@ -209,57 +307,44 @@ export function useCircuitEditor() {
       return newWires;
     });
 
-    saveHistory();
     return junctionComp;
-  }, [saveHistory]);
-
-  const undo = useCallback(() => {
-    if (historyIndex.current > 0) {
-      historyIndex.current--;
-      const state = history[historyIndex.current];
-      setComponents(state.components);
-      setWires(state.wires);
-    }
-  }, [history]);
+  }, [pushHistory]);
 
   const toggleSwitch = useCallback((id: string) => {
+    pushHistory();
     setComponents(prev => prev.map(c => {
       if (c.id !== id) return c;
       if (c.type === 'switch_open') return { ...c, type: 'switch_closed' as ComponentType };
       if (c.type === 'switch_closed') return { ...c, type: 'switch_open' as ComponentType };
       return c;
     }));
-    saveHistory();
-  }, [saveHistory]);
+  }, [pushHistory]);
 
   const clearAll = useCallback(() => {
+    pushHistory();
     setComponents([]);
     setWires([]);
     setSelectedIds([]);
     setDrawingWire(null);
-    saveHistory();
-  }, [saveHistory]);
+  }, [pushHistory]);
 
   const loadParsedCircuit = useCallback((comps: CircuitComponent[], ws: Wire[]) => {
+    pushHistory();
     setComponents(comps);
     setWires(ws);
     setSelectedIds([]);
-    saveHistory();
-  }, [saveHistory]);
+  }, [pushHistory]);
 
   const handleZoom = useCallback((delta: number) => {
     setZoom(prev => Math.max(0.25, Math.min(3, prev + delta)));
   }, []);
 
-  // Get connection points for a component (in world coordinates)
   const getConnectionPoints = useCallback((comp: CircuitComponent): Point[] => {
     return calcConnectionPoints(comp);
   }, []);
 
-  // Find nearest connection point within threshold
   const findNearestConnectionPoint = useCallback((point: Point, threshold: number = 30): { compId: string; point: Point } | null => {
     let best: { compId: string; point: Point; dist: number } | null = null;
-    // Component connection points
     for (const comp of components) {
       const pts = getConnectionPoints(comp);
       for (const cp of pts) {
@@ -269,7 +354,6 @@ export function useCircuitEditor() {
         }
       }
     }
-    // Wire endpoint connection points
     for (const wire of wires) {
       for (const wp of [wire.points[0], wire.points[wire.points.length - 1]]) {
         const dist = Math.hypot(wp.x - point.x, wp.y - point.y);
@@ -291,6 +375,7 @@ export function useCircuitEditor() {
     setPan,
     addComponent,
     moveComponent,
+    moveSelected,
     rotateComponent,
     deleteSelected,
     selectComponent,
@@ -309,6 +394,7 @@ export function useCircuitEditor() {
     setZoom,
     getConnectionPoints,
     findNearestConnectionPoint,
+    pushHistory,
   };
 }
 
