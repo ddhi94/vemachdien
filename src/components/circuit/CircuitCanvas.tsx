@@ -24,6 +24,7 @@ interface Props {
   getConnectionPoints: (comp: CircuitComponent) => Point[];
   findNearestConnectionPoint: (point: Point, threshold?: number) => { compId: string; point: Point } | null;
   mode: 'select' | 'wire';
+  hideNodes: boolean;
 }
 
 const snapToGrid = (val: number) => Math.round(val / SNAP_SIZE) * SNAP_SIZE;
@@ -57,6 +58,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   getConnectionPoints,
   findNearestConnectionPoint,
   mode,
+  hideNodes,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
@@ -406,8 +408,8 @@ export const CircuitCanvas: React.FC<Props> = ({
                 strokeLinejoin="round"
                 style={{ cursor: 'pointer', pointerEvents: 'none' }}
               />
-              {/* Endpoint dots */}
-              {wire.points.map((p, i) => (
+              {/* Endpoint dots - hide when hideNodes is on and not drawing */}
+              {!(hideNodes && !drawingWire && !wireDrawing) && wire.points.map((p, i) => (
                 (i === 0 || i === wire.points.length - 1) && (
                   <circle key={i} cx={p.x} cy={p.y} r={3} fill="hsl(var(--node-color))" />
                 )
@@ -498,8 +500,8 @@ export const CircuitCanvas: React.FC<Props> = ({
                   </text>
                 </g>
 
-                {/* Interactive connection points - always in world coords */}
-                {!isJunction && connPts.map((cp, i) => {
+                {/* Interactive connection points - show when not hiding or when drawing */}
+                {!isJunction && !(hideNodes && !drawingWire && !wireDrawing) && connPts.map((cp, i) => {
                   const isHovered = hoveredNode?.compId === comp.id &&
                     Math.hypot(hoveredNode.point.x - cp.x, hoveredNode.point.y - cp.y) < 5;
                   return (
