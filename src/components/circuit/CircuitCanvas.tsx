@@ -97,8 +97,12 @@ export const CircuitCanvas: React.FC<Props> = ({
       const cps = getConnectionPoints(comp);
       cps.forEach(p => pts.push({ compId: comp.id, point: p }));
     });
+    wires.forEach(wire => {
+      pts.push({ compId: wire.id, point: wire.points[0] });
+      pts.push({ compId: wire.id, point: wire.points[wire.points.length - 1] });
+    });
     return pts;
-  }, [components, getConnectionPoints]);
+  }, [components, wires, getConnectionPoints]);
 
   // Find snap target near mouse
   const snapTarget = useMemo(() => {
@@ -137,16 +141,20 @@ export const CircuitCanvas: React.FC<Props> = ({
     if (e.button === 0 && mode === 'wire') {
       const point = getSVGPoint(e.clientX, e.clientY);
       if (drawingWire) {
-        // Check snap to connection point
+        // Only finish wire if snapping to a valid connection point
         const snap = findNearestConnectionPoint(point, 20);
         if (snap) {
           onFinishWire(snap.point);
         } else {
-          onFinishWire(point);
+          // Don't finish — cancel the wire (no dangling endpoints)
+          onCancelWire();
         }
       } else {
+        // Only start wire from a valid connection point
         const snap = findNearestConnectionPoint(point, 20);
-        onStartWire(snap ? snap.point : point);
+        if (snap) {
+          onStartWire(snap.point);
+        }
       }
       return;
     }
@@ -201,14 +209,14 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (panning) setPanning(null);
 
-    // Finish drag-wire
+    // Finish drag-wire — only if snapping to valid connection point
     if (wireDrawing && drawingWire) {
       const point = getSVGPoint(e.clientX, e.clientY);
       const snap = findNearestConnectionPoint(point, 20);
       if (snap) {
         onFinishWire(snap.point);
       } else {
-        onFinishWire(point);
+        onCancelWire();
       }
       setWireDrawing(false);
       return;
