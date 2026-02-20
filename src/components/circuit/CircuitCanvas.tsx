@@ -412,9 +412,13 @@ export const CircuitCanvas: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCancelWire, onClearSelection]);
 
+  // Clear wire click when selecting a non-wire component
   useEffect(() => {
-    if (selectedIds.length > 0) setWireClickedOnWire(null);
-  }, [selectedIds]);
+    if (selectedIds.length > 0) {
+      const hasSelectedWire = wires.some(w => selectedIds.includes(w.id));
+      if (!hasSelectedWire) setWireClickedOnWire(null);
+    }
+  }, [selectedIds, wires]);
 
   const marqueeRect = marquee ? {
     x: Math.min(marquee.startX, marquee.currentX),
