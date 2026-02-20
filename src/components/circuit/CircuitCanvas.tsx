@@ -31,6 +31,7 @@ interface Props {
   pushHistory: () => void;
   mode: 'select' | 'wire';
   hideNodes: boolean;
+  showLabels: boolean;
 }
 
 const snapToGrid = (val: number) => Math.round(val / SNAP_SIZE) * SNAP_SIZE;
@@ -71,6 +72,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   pushHistory,
   mode,
   hideNodes,
+  showLabels,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number; isGroup: boolean } | null>(null);
@@ -618,8 +620,8 @@ export const CircuitCanvas: React.FC<Props> = ({
                     2, 60
                   )}
 
-                  {/* Label */}
-                  {!isTerminal && (
+                  {/* Label - show for junctions always, for other components only when showLabels is on */}
+                  {!isTerminal && (isPointLike || showLabels) && (
                     <text
                       x={0}
                       y={isPointLike ? -12 : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)}
