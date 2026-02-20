@@ -257,7 +257,7 @@ export const CircuitCanvas: React.FC<Props> = ({
       if (Math.abs(x2 - x1) > 5 || Math.abs(y2 - y1) > 5) {
         const hitIds: string[] = [];
         components.forEach(comp => {
-          if (comp.x + 30 >= x1 && comp.x - 30 <= x2 && comp.y + 15 >= y1 && comp.y - 15 <= y2) {
+          if (comp.x + 40 >= x1 && comp.x - 40 <= x2 && comp.y + 22 >= y1 && comp.y - 22 <= y2) {
             hitIds.push(comp.id);
           }
         });
@@ -555,12 +555,12 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {isPointLike ? (
                     <circle cx={0} cy={0} r={15} fill="transparent" />
                   ) : (
-                    <rect x={-35} y={-22} width={70} height={44} fill="transparent" />
+                    <rect x={-45} y={-22} width={90} height={44} fill="transparent" />
                   )}
 
                   {/* Selection highlight */}
                   {isSelected && !isPointLike && (
-                    <rect x={-35} y={-22} width={70} height={44} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" rx={4} />
+                    <rect x={-45} y={-22} width={90} height={44} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" rx={4} />
                   )}
                   {isSelected && isPointLike && (
                     <circle cx={0} cy={0} r={12} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" />

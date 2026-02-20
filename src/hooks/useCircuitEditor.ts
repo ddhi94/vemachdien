@@ -15,10 +15,10 @@ function calcConnectionPoints(comp: CircuitComponent): Point[] {
   const rad = (comp.rotation * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
-  const dx = 30;
+  const dx = 40; // Must be multiple of SNAP_SIZE (20) so points land on grid
   return [
-    { x: comp.x + (-dx) * cos, y: comp.y + (-dx) * sin },
-    { x: comp.x + dx * cos, y: comp.y + dx * sin },
+    { x: Math.round(comp.x + (-dx) * cos), y: Math.round(comp.y + (-dx) * sin) },
+    { x: Math.round(comp.x + dx * cos), y: Math.round(comp.y + dx * sin) },
   ];
 }
 
@@ -247,14 +247,13 @@ export function useCircuitEditor() {
     if (drawingWire && drawingWire.length >= 1) {
       let finalPoints = [...drawingWire];
       if (endPoint) {
-        // Use exact endpoint (already snapped by caller)
-        const snapped = { x: snapToGrid(endPoint.x), y: snapToGrid(endPoint.y) };
+        // Use exact endpoint from caller — do NOT re-snap, it's already precise
         const last = finalPoints[finalPoints.length - 1];
         // Orthogonal routing
-        if (last.x !== snapped.x && last.y !== snapped.y) {
-          finalPoints.push({ x: snapped.x, y: last.y });
+        if (last.x !== endPoint.x && last.y !== endPoint.y) {
+          finalPoints.push({ x: endPoint.x, y: last.y });
         }
-        finalPoints.push(snapped);
+        finalPoints.push({ x: endPoint.x, y: endPoint.y });
       }
       if (finalPoints.length >= 2) {
         addWire(finalPoints);
