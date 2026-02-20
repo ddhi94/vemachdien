@@ -98,6 +98,24 @@ export const CircuitSymbolSVG: React.FC<Props> = ({
           </g>
         );
 
+      case 'terminal_positive':
+        return (
+          <g>
+            <line x1={-hw} y1={0} x2={-6} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <circle cx={-6} cy={0} r={4} fill="none" stroke={strokeColor} strokeWidth={sw} />
+            <text x={6} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+          </g>
+        );
+
+      case 'terminal_negative':
+        return (
+          <g>
+            <line x1={hw} y1={0} x2={6} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <circle cx={6} cy={0} r={4} fill="none" stroke={strokeColor} strokeWidth={sw} />
+            <text x={-6} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+          </g>
+        );
+
       case 'switch_open':
         return (
           <g>
@@ -291,6 +309,24 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <circle cx={0} cy={0} r={4} fill={strokeColor} />
+        </g>
+      );
+
+    case 'terminal_positive':
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-6} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={-6} cy={0} r={4} fill="none" stroke={strokeColor} strokeWidth={sw} />
+          <text x={6} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+        </g>
+      );
+
+    case 'terminal_negative':
+      return (
+        <g>
+          <line x1={hw} y1={0} x2={6} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={6} cy={0} r={4} fill="none" stroke={strokeColor} strokeWidth={sw} />
+          <text x={-6} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
         </g>
       );
 
