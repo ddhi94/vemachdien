@@ -104,10 +104,10 @@ export const CircuitCanvas: React.FC<Props> = ({
     return pts;
   }, [components, wires, getConnectionPoints]);
 
-  // Find snap target near mouse
+  // Find snap target near mouse — larger threshold for easy snapping
   const snapTarget = useMemo(() => {
     if (!wireDrawing && !drawingWire) return null;
-    const threshold = 20;
+    const threshold = 30;
     let best: { compId: string; point: Point; dist: number } | null = null;
     for (const cp of allConnectionPoints) {
       const dist = Math.hypot(cp.point.x - rawMousePos.x, cp.point.y - rawMousePos.y);
@@ -141,17 +141,20 @@ export const CircuitCanvas: React.FC<Props> = ({
     if (e.button === 0 && mode === 'wire') {
       const point = getSVGPoint(e.clientX, e.clientY);
       if (drawingWire) {
-        // Only finish wire if snapping to a valid connection point
-        const snap = findNearestConnectionPoint(point, 20);
-        if (snap) {
-          onFinishWire(snap.point);
+        // Use snapTarget or findNearest with generous threshold
+        if (snapTarget) {
+          onFinishWire(snapTarget.point);
         } else {
-          // Don't finish — cancel the wire (no dangling endpoints)
-          onCancelWire();
+          const snap = findNearestConnectionPoint(point, 30);
+          if (snap) {
+            onFinishWire(snap.point);
+          } else {
+            onCancelWire();
+          }
         }
       } else {
         // Only start wire from a valid connection point
-        const snap = findNearestConnectionPoint(point, 20);
+        const snap = findNearestConnectionPoint(point, 30);
         if (snap) {
           onStartWire(snap.point);
         }
@@ -167,7 +170,7 @@ export const CircuitCanvas: React.FC<Props> = ({
         setMarquee({ startX: point.x, startY: point.y, currentX: point.x, currentY: point.y });
       }
     }
-  }, [mode, pan, getSVGPoint, drawingWire, onStartWire, onFinishWire, onClearSelection, findNearestConnectionPoint, junctionLabelInput]);
+  }, [mode, pan, getSVGPoint, drawingWire, snapTarget, onStartWire, onFinishWire, onCancelWire, onClearSelection, findNearestConnectionPoint, junctionLabelInput]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const point = getSVGPoint(e.clientX, e.clientY);
@@ -209,14 +212,19 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (panning) setPanning(null);
 
-    // Finish drag-wire — only if snapping to valid connection point
+    // Finish drag-wire — auto-snap to nearest valid point within generous threshold
     if (wireDrawing && drawingWire) {
-      const point = getSVGPoint(e.clientX, e.clientY);
-      const snap = findNearestConnectionPoint(point, 20);
-      if (snap) {
-        onFinishWire(snap.point);
+      // Use snapTarget (already computed with larger threshold) or try findNearest
+      if (snapTarget) {
+        onFinishWire(snapTarget.point);
       } else {
-        onCancelWire();
+        const point = getSVGPoint(e.clientX, e.clientY);
+        const snap = findNearestConnectionPoint(point, 30);
+        if (snap) {
+          onFinishWire(snap.point);
+        } else {
+          onCancelWire();
+        }
       }
       setWireDrawing(false);
       return;
@@ -246,7 +254,7 @@ export const CircuitCanvas: React.FC<Props> = ({
       }
       setMarquee(null);
     }
-  }, [panning, dragging, marquee, wireDrawing, drawingWire, components, wires, getSVGPoint, findNearestConnectionPoint, onFinishWire, onSelectMany]);
+  }, [panning, dragging, marquee, wireDrawing, drawingWire, snapTarget, components, wires, getSVGPoint, findNearestConnectionPoint, onFinishWire, onCancelWire, onSelectMany]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     if (mode === 'wire' && drawingWire) {
@@ -467,17 +475,31 @@ export const CircuitCanvas: React.FC<Props> = ({
                 opacity={0.7}
                 style={{ pointerEvents: 'none' }}
               />
-              {/* Snap indicator */}
+              {/* Snap indicator — prominent green ring + pulse */}
               {snapTarget && (
-                <circle
-                  cx={snapTarget.point.x}
-                  cy={snapTarget.point.y}
-                  r={8}
-                  fill="none"
-                  stroke="hsl(170, 55%, 42%)"
-                  strokeWidth={2}
-                  opacity={0.8}
-                />
+                <g style={{ pointerEvents: 'none' }}>
+                  <circle
+                    cx={snapTarget.point.x}
+                    cy={snapTarget.point.y}
+                    r={12}
+                    fill="hsl(145, 60%, 45%)"
+                    opacity={0.2}
+                  />
+                  <circle
+                    cx={snapTarget.point.x}
+                    cy={snapTarget.point.y}
+                    r={8}
+                    fill="none"
+                    stroke="hsl(145, 60%, 40%)"
+                    strokeWidth={2.5}
+                  />
+                  <circle
+                    cx={snapTarget.point.x}
+                    cy={snapTarget.point.y}
+                    r={3}
+                    fill="hsl(145, 60%, 40%)"
+                  />
+                </g>
               )}
             </>
           )}
