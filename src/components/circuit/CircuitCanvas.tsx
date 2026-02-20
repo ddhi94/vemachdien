@@ -487,19 +487,21 @@ export const CircuitCanvas: React.FC<Props> = ({
                     2, 60
                   )}
 
-                  {/* Label */}
-                  <text
-                    x={0}
-                    y={isPointLike ? (isTerminal ? -12 : -12) : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)}
-                    fontSize={isPointLike ? 13 : 11}
-                    fontFamily="'JetBrains Mono', monospace"
-                    fontWeight={isPointLike ? 700 : 500}
-                    fill={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 25%, 35%)'}
-                    textAnchor="middle"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {comp.label}
-                  </text>
+                  {/* Label - hide for terminals since symbol already shows +/− */}
+                  {!isTerminal && (
+                    <text
+                      x={0}
+                      y={isPointLike ? -12 : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)}
+                      fontSize={isPointLike ? 13 : 11}
+                      fontFamily="'JetBrains Mono', monospace"
+                      fontWeight={isPointLike ? 700 : 500}
+                      fill={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 25%, 35%)'}
+                      textAnchor="middle"
+                      style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    >
+                      {comp.label}
+                    </text>
+                  )}
                 </g>
 
                 {/* Interactive connection points - show when not hiding or when drawing */}

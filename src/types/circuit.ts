@@ -55,8 +55,8 @@ export interface PaletteItem {
 }
 
 export const PALETTE_ITEMS: PaletteItem[] = [
-  { type: 'terminal_positive', label: 'Cực dương (+)', shortLabel: '+', category: 'point' },
-  { type: 'terminal_negative', label: 'Cực âm (−)', shortLabel: '−', category: 'point' },
+  { type: 'terminal_positive', label: '+', shortLabel: '+', category: 'point' },
+  { type: 'terminal_negative', label: '−', shortLabel: '−', category: 'point' },
   { type: 'battery_single', label: 'Nguồn đơn', shortLabel: 'U₁', category: 'source' },
   { type: 'battery', label: 'Nguồn đôi', shortLabel: 'U₂', category: 'source' },
   { type: 'resistor', label: 'Điện trở', shortLabel: 'R', category: 'passive' },
