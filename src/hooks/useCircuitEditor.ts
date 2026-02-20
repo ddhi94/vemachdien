@@ -7,6 +7,21 @@ const genWireId = () => `wire_${globalId++}`;
 
 const snapToGrid = (val: number) => Math.round(val / SNAP_SIZE) * SNAP_SIZE;
 
+// Pure function to get connection points for a component
+function calcConnectionPoints(comp: CircuitComponent): Point[] {
+  if (comp.type === 'junction' || comp.type === 'terminal_positive' || comp.type === 'terminal_negative') {
+    return [{ x: comp.x, y: comp.y }];
+  }
+  const rad = (comp.rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const dx = 30;
+  return [
+    { x: comp.x + (-dx) * cos, y: comp.y + (-dx) * sin },
+    { x: comp.x + dx * cos, y: comp.y + dx * sin },
+  ];
+}
+
 export function useCircuitEditor() {
   const [components, setComponents] = useState<CircuitComponent[]>([]);
   const [wires, setWires] = useState<Wire[]>([]);
@@ -41,9 +56,50 @@ export function useCircuitEditor() {
   }, [saveHistory]);
 
   const moveComponent = useCallback((id: string, x: number, y: number) => {
-    setComponents(prev => prev.map(c =>
-      c.id === id ? { ...c, x: snapToGrid(x), y: snapToGrid(y) } : c
-    ));
+    const sx = snapToGrid(x);
+    const sy = snapToGrid(y);
+
+    setComponents(prev => {
+      const oldComp = prev.find(c => c.id === id);
+      if (!oldComp) return prev;
+
+      const dx = sx - oldComp.x;
+      const dy = sy - oldComp.y;
+      if (dx === 0 && dy === 0) return prev;
+
+      // Get old connection points before move
+      const oldPts = calcConnectionPoints(oldComp);
+
+      // Update component position
+      const newComps = prev.map(c => c.id === id ? { ...c, x: sx, y: sy } : c);
+
+      // Get new connection points after move
+      const newComp = { ...oldComp, x: sx, y: sy };
+      const newPts = calcConnectionPoints(newComp);
+
+      // Build mapping: old connection point -> new connection point
+      const ptMap: { old: Point; new: Point }[] = [];
+      for (let i = 0; i < oldPts.length; i++) {
+        ptMap.push({ old: oldPts[i], new: newPts[i] });
+      }
+
+      // Update wires that are connected to these points
+      setWires(prevWires => prevWires.map(wire => {
+        let changed = false;
+        const newPoints = wire.points.map(wp => {
+          for (const pm of ptMap) {
+            if (Math.abs(wp.x - pm.old.x) < 2 && Math.abs(wp.y - pm.old.y) < 2) {
+              changed = true;
+              return { x: pm.new.x, y: pm.new.y };
+            }
+          }
+          return wp;
+        });
+        return changed ? { ...wire, points: newPoints } : wire;
+      }));
+
+      return newComps;
+    });
   }, []);
 
   const rotateComponent = useCallback((id: string) => {
@@ -187,17 +243,7 @@ export function useCircuitEditor() {
 
   // Get connection points for a component (in world coordinates)
   const getConnectionPoints = useCallback((comp: CircuitComponent): Point[] => {
-    if (comp.type === 'junction' || comp.type === 'terminal_positive' || comp.type === 'terminal_negative') {
-      return [{ x: comp.x, y: comp.y }];
-    }
-    const rad = (comp.rotation * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const dx = 30;
-    return [
-      { x: comp.x + (-dx) * cos, y: comp.y + (-dx) * sin },
-      { x: comp.x + dx * cos, y: comp.y + dx * sin },
-    ];
+    return calcConnectionPoints(comp);
   }, []);
 
   // Find nearest connection point within threshold
