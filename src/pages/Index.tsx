@@ -17,22 +17,113 @@ const Index = () => {
     editor.addComponent(type, x, y, label || type);
   }, [editor]);
 
-  const handleExport = useCallback(() => {
-    const svgElement = document.querySelector('.circuit-grid') as SVGSVGElement;
-    if (!svgElement) return;
+  // Calculate bounding box of all content
+  const getContentBounds = useCallback(() => {
+    const padding = 38; // ~1cm at 96dpi
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     
+    editor.components.forEach(comp => {
+      const margin = comp.type === 'junction' || comp.type === 'terminal_positive' || comp.type === 'terminal_negative' ? 20 : 40;
+      minX = Math.min(minX, comp.x - margin);
+      minY = Math.min(minY, comp.y - margin);
+      maxX = Math.max(maxX, comp.x + margin);
+      maxY = Math.max(maxY, comp.y + margin);
+    });
+    editor.wires.forEach(wire => {
+      wire.points.forEach(p => {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+      });
+    });
+
+    if (!isFinite(minX)) return { x: 0, y: 0, width: 200, height: 200 };
+    return {
+      x: minX - padding,
+      y: minY - padding,
+      width: maxX - minX + padding * 2,
+      height: maxY - minY + padding * 2,
+    };
+  }, [editor.components, editor.wires]);
+
+  const buildExportSVG = useCallback(() => {
+    const svgElement = document.querySelector('.circuit-grid') as SVGSVGElement;
+    if (!svgElement) return null;
+
+    const bounds = getContentBounds();
     const clone = svgElement.cloneNode(true) as SVGSVGElement;
+    
+    // Remove the background rect, coordinates text, and set proper viewBox
+    clone.querySelectorAll('.canvas-bg').forEach(el => el.remove());
+    // Remove coordinate text (last text element)
+    const texts = clone.querySelectorAll(':scope > text');
+    texts.forEach(t => t.remove());
+
+    // Find the transform group and remove pan/zoom transform
+    const mainG = clone.querySelector('g');
+    if (mainG) {
+      mainG.setAttribute('transform', `translate(${-bounds.x}, ${-bounds.y})`);
+    }
+
+    clone.setAttribute('viewBox', `0 0 ${bounds.width} ${bounds.height}`);
+    clone.setAttribute('width', String(bounds.width));
+    clone.setAttribute('height', String(bounds.height));
+    clone.style.background = 'white';
+    clone.removeAttribute('class');
+
+    return { clone, bounds };
+  }, [getContentBounds]);
+
+  const handleExportSVG = useCallback(() => {
+    const result = buildExportSVG();
+    if (!result) return;
     const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(clone);
+    const svgString = serializer.serializeToString(result.clone);
     const blob = new Blob([svgString], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
-    
     const a = document.createElement('a');
     a.href = url;
     a.download = 'so-do-mach-dien.svg';
     a.click();
     URL.revokeObjectURL(url);
-  }, []);
+  }, [buildExportSVG]);
+
+  const handleExportImage = useCallback((format: 'png' | 'jpg') => {
+    const result = buildExportSVG();
+    if (!result) return;
+    const { clone, bounds } = result;
+    
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(clone);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2; // retina
+      const canvas = document.createElement('canvas');
+      canvas.width = bounds.width * scale;
+      canvas.height = bounds.height * scale;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `so-do-mach-dien.${format}`;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      }, mimeType, 0.95);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, [buildExportSVG]);
 
   const handleRotate = useCallback(() => {
     editor.selectedIds.forEach(id => editor.rotateComponent(id));
@@ -93,7 +184,9 @@ const Index = () => {
             onZoomIn={() => editor.handleZoom(0.1)}
             onZoomOut={() => editor.handleZoom(-0.1)}
             onClear={editor.clearAll}
-            onExport={handleExport}
+            onExportSVG={handleExportSVG}
+            onExportPNG={() => handleExportImage('png')}
+            onExportJPG={() => handleExportImage('jpg')}
             onRotate={handleRotate}
             hasSelection={editor.selectedIds.length > 0}
             hideNodes={hideNodes}
@@ -115,6 +208,7 @@ const Index = () => {
               onSelectMany={editor.selectMany}
               onMoveComponent={editor.moveComponent}
               onRotateComponent={editor.rotateComponent}
+              onToggleSwitch={editor.toggleSwitch}
               onClearSelection={editor.clearSelection}
               onStartWire={editor.startDrawingWire}
               onFinishWire={editor.finishDrawingWire}
