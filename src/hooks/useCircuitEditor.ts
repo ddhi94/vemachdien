@@ -309,6 +309,41 @@ export function useCircuitEditor() {
     return junctionComp;
   }, [pushHistory]);
 
+  // Move a single point of a wire
+  const moveWirePoint = useCallback((wireId: string, pointIndex: number, x: number, y: number) => {
+    const sx = snapToGrid(x);
+    const sy = snapToGrid(y);
+    setWires(prev => prev.map(w => {
+      if (w.id !== wireId) return w;
+      const newPoints = [...w.points];
+      newPoints[pointIndex] = { x: sx, y: sy };
+      return { ...w, points: newPoints };
+    }));
+  }, []);
+
+  // Insert a new bend point on a wire segment
+  const insertWirePoint = useCallback((wireId: string, segmentIndex: number, point: Point) => {
+    pushHistory();
+    const snapped = { x: snapToGrid(point.x), y: snapToGrid(point.y) };
+    setWires(prev => prev.map(w => {
+      if (w.id !== wireId) return w;
+      const newPoints = [...w.points];
+      newPoints.splice(segmentIndex + 1, 0, snapped);
+      return { ...w, points: newPoints };
+    }));
+  }, [pushHistory]);
+
+  // Delete a wire point (if wire has more than 2 points)
+  const deleteWirePoint = useCallback((wireId: string, pointIndex: number) => {
+    pushHistory();
+    setWires(prev => prev.map(w => {
+      if (w.id !== wireId) return w;
+      if (w.points.length <= 2) return w;
+      const newPoints = w.points.filter((_, i) => i !== pointIndex);
+      return { ...w, points: newPoints };
+    }));
+  }, [pushHistory]);
+
   const toggleSwitch = useCallback((id: string) => {
     pushHistory();
     setComponents(prev => prev.map(c => {
@@ -385,6 +420,9 @@ export function useCircuitEditor() {
     cancelDrawingWire,
     addWire,
     addJunctionOnWire,
+    moveWirePoint,
+    insertWirePoint,
+    deleteWirePoint,
     toggleSwitch,
     undo,
     clearAll,

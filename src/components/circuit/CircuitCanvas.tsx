@@ -23,6 +23,9 @@ interface Props {
   onCancelWire: () => void;
   onZoom: (delta: number) => void;
   onAddJunctionOnWire: (wireId: string, point: Point, label: string) => void;
+  onMoveWirePoint: (wireId: string, pointIndex: number, x: number, y: number) => void;
+  onInsertWirePoint: (wireId: string, segmentIndex: number, point: Point) => void;
+  onDeleteWirePoint: (wireId: string, pointIndex: number) => void;
   getConnectionPoints: (comp: CircuitComponent) => Point[];
   findNearestConnectionPoint: (point: Point, threshold?: number) => { compId: string; point: Point } | null;
   pushHistory: () => void;
@@ -60,6 +63,9 @@ export const CircuitCanvas: React.FC<Props> = ({
   onCancelWire,
   onZoom,
   onAddJunctionOnWire,
+  onMoveWirePoint,
+  onInsertWirePoint,
+  onDeleteWirePoint,
   getConnectionPoints,
   findNearestConnectionPoint,
   pushHistory,
@@ -73,9 +79,11 @@ export const CircuitCanvas: React.FC<Props> = ({
   const [rawMousePos, setRawMousePos] = useState<Point>({ x: 0, y: 0 });
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const [hoveredNode, setHoveredNode] = useState<{ compId: string; point: Point } | null>(null);
-  const [wireDrawing, setWireDrawing] = useState(false); // true when dragging from a connection point
+  const [wireDrawing, setWireDrawing] = useState(false);
   const [wireClickedOnWire, setWireClickedOnWire] = useState<{ wireId: string; point: Point } | null>(null);
   const [junctionLabelInput, setJunctionLabelInput] = useState<{ wireId: string; point: Point; x: number; y: number } | null>(null);
+  // Wire point dragging state
+  const [draggingWirePoint, setDraggingWirePoint] = useState<{ wireId: string; pointIndex: number } | null>(null);
 
   const getSVGPoint = useCallback((clientX: number, clientY: number): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -86,7 +94,6 @@ export const CircuitCanvas: React.FC<Props> = ({
     };
   }, [pan, zoom]);
 
-  // Get screen position from SVG point
   const getScreenPos = useCallback((svgPoint: Point): Point => {
     return {
       x: svgPoint.x * zoom + pan.x,
@@ -108,7 +115,7 @@ export const CircuitCanvas: React.FC<Props> = ({
     return pts;
   }, [components, wires, getConnectionPoints]);
 
-  // Find snap target near mouse — larger threshold for easy snapping
+  // Find snap target near mouse
   const snapTarget = useMemo(() => {
     if (!wireDrawing && !drawingWire) return null;
     const threshold = 30;
@@ -132,7 +139,6 @@ export const CircuitCanvas: React.FC<Props> = ({
   }, [pan, setPan, onZoom]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Close junction label input if clicking elsewhere
     if (junctionLabelInput) {
       setJunctionLabelInput(null);
     }
@@ -145,7 +151,6 @@ export const CircuitCanvas: React.FC<Props> = ({
     if (e.button === 0 && mode === 'wire') {
       const point = getSVGPoint(e.clientX, e.clientY);
       if (drawingWire) {
-        // Use snapTarget or findNearest with generous threshold
         if (snapTarget) {
           onFinishWire(snapTarget.point);
         } else {
@@ -157,7 +162,6 @@ export const CircuitCanvas: React.FC<Props> = ({
           }
         }
       } else {
-        // Only start wire from a valid connection point
         const snap = findNearestConnectionPoint(point, 30);
         if (snap) {
           onStartWire(snap.point);
@@ -182,8 +186,7 @@ export const CircuitCanvas: React.FC<Props> = ({
     setMousePos(snapped);
     setRawMousePos(point);
 
-    // Check hover over connection points in select mode
-    if (mode === 'select' && !dragging && !marquee) {
+    if (mode === 'select' && !dragging && !marquee && !draggingWirePoint) {
       const near = findNearestConnectionPoint(point, 15);
       setHoveredNode(near);
     }
@@ -202,7 +205,12 @@ export const CircuitCanvas: React.FC<Props> = ({
     }
 
     if (wireDrawing && drawingWire) {
-      // Wire is being drawn by dragging from connection point - just update mouse pos
+      return;
+    }
+
+    // Dragging a wire bend point
+    if (draggingWirePoint) {
+      onMoveWirePoint(draggingWirePoint.wireId, draggingWirePoint.pointIndex, point.x, point.y);
       return;
     }
 
@@ -216,21 +224,18 @@ export const CircuitCanvas: React.FC<Props> = ({
         const dy = sy - dragging.startY;
         if (dx !== 0 || dy !== 0) {
           onMoveSelected(selectedIds, dx, dy);
-          // Update start position for next delta
           setDragging(prev => prev ? { ...prev, startX: sx, startY: sy } : null);
         }
       } else {
         onMoveComponent(dragging.id, x, y);
       }
     }
-  }, [getSVGPoint, panning, dragging, marquee, wireDrawing, drawingWire, mode, setPan, onMoveComponent, onMoveSelected, selectedIds, findNearestConnectionPoint]);
+  }, [getSVGPoint, panning, dragging, marquee, wireDrawing, drawingWire, draggingWirePoint, mode, setPan, onMoveComponent, onMoveSelected, onMoveWirePoint, selectedIds, findNearestConnectionPoint]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (panning) setPanning(null);
 
-    // Finish drag-wire — auto-snap to nearest valid point within generous threshold
     if (wireDrawing && drawingWire) {
-      // Use snapTarget (already computed with larger threshold) or try findNearest
       if (snapTarget) {
         onFinishWire(snapTarget.point);
       } else {
@@ -243,6 +248,11 @@ export const CircuitCanvas: React.FC<Props> = ({
         }
       }
       setWireDrawing(false);
+      return;
+    }
+
+    if (draggingWirePoint) {
+      setDraggingWirePoint(null);
       return;
     }
 
@@ -270,7 +280,7 @@ export const CircuitCanvas: React.FC<Props> = ({
       }
       setMarquee(null);
     }
-  }, [panning, dragging, marquee, wireDrawing, drawingWire, snapTarget, components, wires, getSVGPoint, findNearestConnectionPoint, onFinishWire, onCancelWire, onSelectMany]);
+  }, [panning, dragging, marquee, wireDrawing, drawingWire, draggingWirePoint, snapTarget, components, wires, getSVGPoint, findNearestConnectionPoint, onFinishWire, onCancelWire, onSelectMany]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     if (mode === 'wire' && drawingWire) {
@@ -309,7 +319,6 @@ export const CircuitCanvas: React.FC<Props> = ({
         onSelectComponent(comp.id, true);
       }
       const point = getSVGPoint(e.clientX, e.clientY);
-      // Push history before drag starts
       pushHistory();
       const isGroup = selectedIds.includes(comp.id) && selectedIds.length > 1;
       setDragging({
@@ -332,7 +341,7 @@ export const CircuitCanvas: React.FC<Props> = ({
     }
   }, [onRotateComponent, onToggleSwitch]);
 
-  // Click on wire to add junction
+  // Click on wire to select it
   const handleWireClick = useCallback((e: React.MouseEvent, wireId: string) => {
     e.stopPropagation();
     if (mode === 'select') {
@@ -340,6 +349,7 @@ export const CircuitCanvas: React.FC<Props> = ({
         onSelectComponent(wireId, true);
         return;
       }
+      onSelectComponent(wireId, false);
       // Show + button on wire
       const point = getSVGPoint(e.clientX, e.clientY);
       const snapped = { x: snapToGrid(point.x), y: snapToGrid(point.y) };
@@ -348,6 +358,21 @@ export const CircuitCanvas: React.FC<Props> = ({
       onSelectComponent(wireId, e.shiftKey);
     }
   }, [mode, getSVGPoint, onSelectComponent]);
+
+  // Start dragging a wire bend point
+  const handleWirePointMouseDown = useCallback((e: React.MouseEvent, wireId: string, pointIndex: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    pushHistory();
+    setDraggingWirePoint({ wireId, pointIndex });
+  }, [pushHistory]);
+
+  // Double-click on wire segment to add a new bend point
+  const handleWireSegmentDblClick = useCallback((e: React.MouseEvent, wireId: string, segmentIndex: number) => {
+    e.stopPropagation();
+    const point = getSVGPoint(e.clientX, e.clientY);
+    onInsertWirePoint(wireId, segmentIndex, point);
+  }, [getSVGPoint, onInsertWirePoint]);
 
   // Handle clicking the + button on a wire
   const handleAddJunctionClick = useCallback((e: React.MouseEvent) => {
@@ -378,13 +403,13 @@ export const CircuitCanvas: React.FC<Props> = ({
         setWireClickedOnWire(null);
         setJunctionLabelInput(null);
         setWireDrawing(false);
+        setDraggingWirePoint(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCancelWire, onClearSelection]);
 
-  // Clear wire click when clicking elsewhere
   useEffect(() => {
     if (selectedIds.length > 0) setWireClickedOnWire(null);
   }, [selectedIds]);
@@ -396,14 +421,12 @@ export const CircuitCanvas: React.FC<Props> = ({
     height: Math.abs(marquee.currentY - marquee.startY),
   } : null;
 
-  // Compute wire preview endpoint with snapping
   const wirePreviewEnd = useMemo(() => {
     if (!drawingWire || drawingWire.length === 0) return mousePos;
     if (snapTarget) return snapTarget.point;
     return mousePos;
   }, [drawingWire, mousePos, snapTarget]);
 
-  // Build orthogonal preview path
   const wirePreviewPoints = useMemo(() => {
     if (!drawingWire || drawingWire.length === 0) return [];
     const pts = [...drawingWire];
@@ -425,7 +448,8 @@ export const CircuitCanvas: React.FC<Props> = ({
           cursor: mode === 'wire' ? 'crosshair'
             : (panning ? 'grabbing'
               : (marquee ? 'crosshair'
-                : (hoveredNode ? 'crosshair' : 'default'))),
+                : (draggingWirePoint ? 'grabbing'
+                  : (hoveredNode ? 'crosshair' : 'default')))),
           background: 'hsl(var(--canvas-bg))',
           backgroundPosition: `${pan.x}px ${pan.y}px`,
         }}
@@ -441,46 +465,78 @@ export const CircuitCanvas: React.FC<Props> = ({
 
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Wires */}
-          {wires.map(wire => (
-            <g key={wire.id}>
-              {/* Invisible thick line for easier clicking */}
-              <polyline
-                points={wire.points.map(p => `${p.x},${p.y}`).join(' ')}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={12}
-                strokeLinejoin="round"
-                style={{ cursor: 'pointer' }}
-                onClick={(e) => handleWireClick(e, wire.id)}
-              />
-              <polyline
-                points={wire.points.map(p => `${p.x},${p.y}`).join(' ')}
-                fill="none"
-                stroke={selectedIds.includes(wire.id) ? 'hsl(var(--component-selected))' : 'hsl(var(--wire-color))'}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                style={{ cursor: 'pointer', pointerEvents: 'none' }}
-              />
-              {/* Endpoint dots - interactive for starting wires */}
-              {wire.points.map((p, i) => {
-                if (i !== 0 && i !== wire.points.length - 1) return null;
-                if (hideNodes && !drawingWire && !wireDrawing) return null;
-                const isEndpointHovered = hoveredNode === null && 
-                  Math.hypot(rawMousePos.x - p.x, rawMousePos.y - p.y) < 15;
-                return (
-                  <g key={i}>
-                    <circle cx={p.x} cy={p.y} r={3} fill="hsl(var(--node-color))" />
-                    <circle 
-                      cx={p.x} cy={p.y} r={isEndpointHovered ? 8 : 6} 
-                      fill="transparent" 
-                      style={{ cursor: 'crosshair' }}
-                      onMouseDown={(e) => handleNodeMouseDown(e, { x: p.x, y: p.y })}
+          {wires.map(wire => {
+            const isSelected = selectedIds.includes(wire.id);
+            return (
+              <g key={wire.id}>
+                {/* Invisible thick line for easier clicking */}
+                <polyline
+                  points={wire.points.map(p => `${p.x},${p.y}`).join(' ')}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={12}
+                  strokeLinejoin="round"
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => handleWireClick(e, wire.id)}
+                />
+                {/* Per-segment invisible lines for double-click to add bend point */}
+                {wire.points.length >= 2 && wire.points.slice(0, -1).map((p, i) => {
+                  const next = wire.points[i + 1];
+                  return (
+                    <line
+                      key={`seg_${i}`}
+                      x1={p.x} y1={p.y} x2={next.x} y2={next.y}
+                      stroke="transparent"
+                      strokeWidth={14}
+                      style={{ cursor: 'pointer' }}
+                      onDoubleClick={(e) => handleWireSegmentDblClick(e, wire.id, i)}
+                    />
+                  );
+                })}
+                <polyline
+                  points={wire.points.map(p => `${p.x},${p.y}`).join(' ')}
+                  fill="none"
+                  stroke={isSelected ? 'hsl(var(--component-selected))' : 'hsl(var(--wire-color))'}
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  style={{ pointerEvents: 'none' }}
+                />
+                {/* Wire bend point handles - show when wire is selected */}
+                {isSelected && wire.points.map((p, i) => (
+                  <g key={`wp_${i}`}>
+                    {/* Draggable handle */}
+                    <rect
+                      x={p.x - 5} y={p.y - 5} width={10} height={10}
+                      fill="hsl(var(--component-selected))"
+                      stroke="white"
+                      strokeWidth={1}
+                      rx={2}
+                      style={{ cursor: 'move' }}
+                      onMouseDown={(e) => handleWirePointMouseDown(e, wire.id, i)}
                     />
                   </g>
-                );
-              })}
-            </g>
-          ))}
+                ))}
+                {/* Endpoint dots when not selected */}
+                {!isSelected && wire.points.map((p, i) => {
+                  if (i !== 0 && i !== wire.points.length - 1) return null;
+                  if (hideNodes && !drawingWire && !wireDrawing) return null;
+                  const isEndpointHovered = hoveredNode === null &&
+                    Math.hypot(rawMousePos.x - p.x, rawMousePos.y - p.y) < 15;
+                  return (
+                    <g key={i}>
+                      <circle cx={p.x} cy={p.y} r={3} fill="hsl(var(--node-color))" />
+                      <circle
+                        cx={p.x} cy={p.y} r={isEndpointHovered ? 8 : 6}
+                        fill="transparent"
+                        style={{ cursor: 'crosshair' }}
+                        onMouseDown={(e) => handleNodeMouseDown(e, { x: p.x, y: p.y })}
+                      />
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
 
           {/* + button on clicked wire */}
           {wireClickedOnWire && (
@@ -506,30 +562,11 @@ export const CircuitCanvas: React.FC<Props> = ({
                 opacity={0.7}
                 style={{ pointerEvents: 'none' }}
               />
-              {/* Snap indicator — prominent green ring + pulse */}
               {snapTarget && (
                 <g style={{ pointerEvents: 'none' }}>
-                  <circle
-                    cx={snapTarget.point.x}
-                    cy={snapTarget.point.y}
-                    r={12}
-                    fill="hsl(145, 60%, 45%)"
-                    opacity={0.2}
-                  />
-                  <circle
-                    cx={snapTarget.point.x}
-                    cy={snapTarget.point.y}
-                    r={8}
-                    fill="none"
-                    stroke="hsl(145, 60%, 40%)"
-                    strokeWidth={2.5}
-                  />
-                  <circle
-                    cx={snapTarget.point.x}
-                    cy={snapTarget.point.y}
-                    r={3}
-                    fill="hsl(145, 60%, 40%)"
-                  />
+                  <circle cx={snapTarget.point.x} cy={snapTarget.point.y} r={12} fill="hsl(145, 60%, 45%)" opacity={0.2} />
+                  <circle cx={snapTarget.point.x} cy={snapTarget.point.y} r={8} fill="none" stroke="hsl(145, 60%, 40%)" strokeWidth={2.5} />
+                  <circle cx={snapTarget.point.x} cy={snapTarget.point.y} r={3} fill="hsl(145, 60%, 40%)" />
                 </g>
               )}
             </>
@@ -551,7 +588,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                   onMouseDown={(e) => handleComponentMouseDown(e, comp)}
                   onDoubleClick={(e) => handleComponentDblClick(e, comp)}
                 >
-                  {/* Invisible hit area for easy clicking/dragging */}
+                  {/* Invisible hit area */}
                   {isPointLike ? (
                     <circle cx={0} cy={0} r={15} fill="transparent" />
                   ) : (
@@ -566,6 +603,14 @@ export const CircuitCanvas: React.FC<Props> = ({
                     <circle cx={0} cy={0} r={12} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" />
                   )}
 
+                  {/* Lead extensions from symbol (±30) to connection points (±40) */}
+                  {!isPointLike && (
+                    <>
+                      <line x1={-30} y1={0} x2={-40} y2={0} stroke={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)'} strokeWidth={2} />
+                      <line x1={30} y1={0} x2={40} y2={0} stroke={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)'} strokeWidth={2} />
+                    </>
+                  )}
+
                   {/* Symbol */}
                   {renderSymbolOnCanvas(
                     comp.type,
@@ -573,7 +618,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                     2, 60
                   )}
 
-                  {/* Label - hide for terminals since symbol already shows +/− */}
+                  {/* Label */}
                   {!isTerminal && (
                     <text
                       x={0}
@@ -590,7 +635,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                   )}
                 </g>
 
-                {/* Interactive connection points - show when not hiding or when drawing */}
+                {/* Interactive connection points */}
                 {!isPointLike && !(hideNodes && !drawingWire && !wireDrawing) && connPts.map((cp, i) => {
                   const isHovered = hoveredNode?.compId === comp.id &&
                     Math.hypot(hoveredNode.point.x - cp.x, hoveredNode.point.y - cp.y) < 5;
@@ -608,7 +653,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                   );
                 })}
 
-                {/* Junction/Terminal point - also draggable for wire */}
+                {/* Junction/Terminal point */}
                 {isPointLike && (
                   <circle
                     cx={comp.x}

@@ -216,6 +216,9 @@ const Index = () => {
               onCancelWire={editor.cancelDrawingWire}
               onZoom={editor.handleZoom}
               onAddJunctionOnWire={editor.addJunctionOnWire}
+              onMoveWirePoint={editor.moveWirePoint}
+              onInsertWirePoint={editor.insertWirePoint}
+              onDeleteWirePoint={editor.deleteWirePoint}
               getConnectionPoints={editor.getConnectionPoints}
               findNearestConnectionPoint={editor.findNearestConnectionPoint}
               pushHistory={editor.pushHistory}
