@@ -460,6 +460,8 @@ export const CircuitCanvas: React.FC<Props> = ({
           {components.map(comp => {
             const isSelected = selectedIds.includes(comp.id);
             const isJunction = comp.type === 'junction';
+            const isTerminal = comp.type === 'terminal_positive' || comp.type === 'terminal_negative';
+            const isPointLike = isJunction || isTerminal;
             const connPts = getConnectionPoints(comp);
 
             return (
@@ -471,11 +473,11 @@ export const CircuitCanvas: React.FC<Props> = ({
                   onDoubleClick={(e) => handleComponentDblClick(e, comp)}
                 >
                   {/* Selection highlight */}
-                  {isSelected && !isJunction && (
+                  {isSelected && !isPointLike && (
                     <rect x={-35} y={-22} width={70} height={44} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" rx={4} />
                   )}
-                  {isSelected && isJunction && (
-                    <circle cx={0} cy={0} r={10} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" />
+                  {isSelected && isPointLike && (
+                    <circle cx={0} cy={0} r={12} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" />
                   )}
 
                   {/* Symbol */}
@@ -488,10 +490,10 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {/* Label */}
                   <text
                     x={0}
-                    y={isJunction ? -12 : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)}
-                    fontSize={isJunction ? 13 : 11}
+                    y={isPointLike ? (isTerminal ? -12 : -12) : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)}
+                    fontSize={isPointLike ? 13 : 11}
                     fontFamily="'JetBrains Mono', monospace"
-                    fontWeight={isJunction ? 700 : 500}
+                    fontWeight={isPointLike ? 700 : 500}
                     fill={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 25%, 35%)'}
                     textAnchor="middle"
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
@@ -501,7 +503,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                 </g>
 
                 {/* Interactive connection points - show when not hiding or when drawing */}
-                {!isJunction && !(hideNodes && !drawingWire && !wireDrawing) && connPts.map((cp, i) => {
+                {!isPointLike && !(hideNodes && !drawingWire && !wireDrawing) && connPts.map((cp, i) => {
                   const isHovered = hoveredNode?.compId === comp.id &&
                     Math.hypot(hoveredNode.point.x - cp.x, hoveredNode.point.y - cp.y) < 5;
                   return (
@@ -518,8 +520,8 @@ export const CircuitCanvas: React.FC<Props> = ({
                   );
                 })}
 
-                {/* Junction point - also draggable for wire */}
-                {isJunction && (
+                {/* Junction/Terminal point - also draggable for wire */}
+                {isPointLike && (
                   <circle
                     cx={comp.x}
                     cy={comp.y}

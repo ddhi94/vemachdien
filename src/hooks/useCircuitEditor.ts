@@ -187,21 +187,13 @@ export function useCircuitEditor() {
 
   // Get connection points for a component (in world coordinates)
   const getConnectionPoints = useCallback((comp: CircuitComponent): Point[] => {
-    if (comp.type === 'junction') {
+    if (comp.type === 'junction' || comp.type === 'terminal_positive' || comp.type === 'terminal_negative') {
       return [{ x: comp.x, y: comp.y }];
     }
     const rad = (comp.rotation * Math.PI) / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
     const dx = 30;
-    // Terminal positive: connection on the left side (wire lead goes left)
-    if (comp.type === 'terminal_positive') {
-      return [{ x: comp.x + (-dx) * cos, y: comp.y + (-dx) * sin }];
-    }
-    // Terminal negative: connection on the right side (wire lead goes right)
-    if (comp.type === 'terminal_negative') {
-      return [{ x: comp.x + dx * cos, y: comp.y + dx * sin }];
-    }
     return [
       { x: comp.x + (-dx) * cos, y: comp.y + (-dx) * sin },
       { x: comp.x + dx * cos, y: comp.y + dx * sin },
