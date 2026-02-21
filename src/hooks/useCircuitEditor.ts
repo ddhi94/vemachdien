@@ -362,6 +362,11 @@ export function useCircuitEditor() {
     setDrawingWire(null);
   }, [pushHistory]);
 
+  const setComponentLabel = useCallback((id: string, label: string) => {
+    pushHistory();
+    setComponents(prev => prev.map(c => c.id === id ? { ...c, label } : c));
+  }, [pushHistory]);
+
   const loadParsedCircuit = useCallback((comps: CircuitComponent[], ws: Wire[]) => {
     pushHistory();
     setComponents(comps);
@@ -426,6 +431,7 @@ export function useCircuitEditor() {
     toggleSwitch,
     undo,
     clearAll,
+    setComponentLabel,
     loadParsedCircuit,
     handleZoom,
     setZoom,

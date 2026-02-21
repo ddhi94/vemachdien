@@ -29,6 +29,7 @@ interface Props {
   getConnectionPoints: (comp: CircuitComponent) => Point[];
   findNearestConnectionPoint: (point: Point, threshold?: number) => { compId: string; point: Point } | null;
   pushHistory: () => void;
+  setComponentLabel: (id: string, label: string) => void;
   mode: 'select' | 'wire';
   hideNodes: boolean;
   showLabels: boolean;
@@ -70,6 +71,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   getConnectionPoints,
   findNearestConnectionPoint,
   pushHistory,
+  setComponentLabel,
   mode,
   hideNodes,
   showLabels,
@@ -83,7 +85,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   const [hoveredNode, setHoveredNode] = useState<{ compId: string; point: Point } | null>(null);
   const [wireDrawing, setWireDrawing] = useState(false);
   const [wireClickedOnWire, setWireClickedOnWire] = useState<{ wireId: string; point: Point } | null>(null);
-  const [junctionLabelInput, setJunctionLabelInput] = useState<{ wireId: string; point: Point; x: number; y: number } | null>(null);
+  const [junctionLabelInput, setJunctionLabelInput] = useState<{ wireId: string; compId: string | null; point: Point; x: number; y: number } | null>(null);
   // Wire point dragging state
   const [draggingWirePoint, setDraggingWirePoint] = useState<{ wireId: string; pointIndex: number } | null>(null);
 
@@ -237,6 +239,8 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (panning) setPanning(null);
 
+    if (panning) setPanning(null);
+
     if (wireDrawing && drawingWire) {
       if (snapTarget) {
         onFinishWire(snapTarget.point);
@@ -307,9 +311,28 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, compPoint: Point) => {
     e.stopPropagation();
     e.preventDefault();
-    onStartWire(compPoint);
-    setWireDrawing(true);
+    if (e.button === 0) { // Left click to draw wire
+      onStartWire(compPoint);
+      setWireDrawing(true);
+      setNodeContextMenu(null);
+    }
   }, [onStartWire]);
+
+  // Context menu on right click for junction points
+  const [nodeContextMenu, setNodeContextMenu] = useState<{ point: Point; compId: string | null; wireId: string | null; pointIndex: number | null; x: number; y: number } | null>(null);
+
+  const handleNodeContextMenu = useCallback((e: React.MouseEvent, point: Point, compId: string | null = null, wireId: string | null = null, pointIndex: number | null = null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setNodeContextMenu({
+      point,
+      compId,
+      wireId,
+      pointIndex,
+      x: e.clientX,
+      y: e.clientY
+    });
+  }, []);
 
   const handleComponentMouseDown = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
     e.stopPropagation();
@@ -383,6 +406,7 @@ export const CircuitCanvas: React.FC<Props> = ({
     const screenPos = getScreenPos(wireClickedOnWire.point);
     setJunctionLabelInput({
       wireId: wireClickedOnWire.wireId,
+      compId: null,
       point: wireClickedOnWire.point,
       x: screenPos.x,
       y: screenPos.y,
@@ -392,10 +416,16 @@ export const CircuitCanvas: React.FC<Props> = ({
 
   const handleJunctionLabelSubmit = useCallback((label: string) => {
     if (junctionLabelInput && label.trim()) {
-      onAddJunctionOnWire(junctionLabelInput.wireId, junctionLabelInput.point, label.trim().toUpperCase());
+      if (junctionLabelInput.compId) {
+        // Renaming an existing junction
+        setComponentLabel(junctionLabelInput.compId, label.trim().toUpperCase());
+      } else {
+        // Adding a new junction on a wire
+        onAddJunctionOnWire(junctionLabelInput.wireId, junctionLabelInput.point, label.trim().toUpperCase());
+      }
     }
     setJunctionLabelInput(null);
-  }, [junctionLabelInput, onAddJunctionOnWire]);
+  }, [junctionLabelInput, onAddJunctionOnWire, setComponentLabel]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -404,6 +434,7 @@ export const CircuitCanvas: React.FC<Props> = ({
         onClearSelection();
         setWireClickedOnWire(null);
         setJunctionLabelInput(null);
+        setNodeContextMenu(null);
         setWireDrawing(false);
         setDraggingWirePoint(null);
       }
@@ -411,6 +442,13 @@ export const CircuitCanvas: React.FC<Props> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCancelWire, onClearSelection]);
+
+  // Handle clicking outside context menus
+  useEffect(() => {
+    const handleClickOutside = () => setNodeContextMenu(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
 
   // Clear wire click when selecting a non-wire component
   useEffect(() => {
@@ -536,6 +574,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                         fill="transparent"
                         style={{ cursor: 'crosshair' }}
                         onMouseDown={(e) => handleNodeMouseDown(e, { x: p.x, y: p.y })}
+                        onContextMenu={(e) => handleNodeContextMenu(e, { x: p.x, y: p.y }, null, wire.id, i)}
                       />
                     </g>
                   );
@@ -655,6 +694,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                       opacity={isHovered ? 0.9 : 0.5}
                       style={{ cursor: 'crosshair', transition: 'r 0.15s, opacity 0.15s' }}
                       onMouseDown={(e) => handleNodeMouseDown(e, cp)}
+                      onContextMenu={(e) => handleNodeContextMenu(e, cp, comp.id)}
                     />
                   );
                 })}
@@ -668,6 +708,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                     fill="transparent"
                     style={{ cursor: 'crosshair' }}
                     onMouseDown={(e) => handleNodeMouseDown(e, { x: comp.x, y: comp.y })}
+                    onContextMenu={(e) => handleNodeContextMenu(e, { x: comp.x, y: comp.y }, comp.id)}
                   />
                 )}
               </g>
@@ -725,6 +766,65 @@ export const CircuitCanvas: React.FC<Props> = ({
               OK
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Node Context Menu Overlay */}
+      {nodeContextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            left: nodeContextMenu.x,
+            top: nodeContextMenu.y,
+            zIndex: 1000,
+          }}
+          className="flex flex-col min-w-[120px] py-1 bg-popover text-popover-foreground rounded-md border shadow-md text-sm"
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          {nodeContextMenu.wireId && nodeContextMenu.pointIndex !== null && (
+            <button
+              className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteWirePoint(nodeContextMenu.wireId!, nodeContextMenu.pointIndex!);
+                setNodeContextMenu(null);
+              }}
+            >
+              Xóa điểm (làm thẳng)
+            </button>
+          )}
+          {nodeContextMenu.compId && components.find(c => c.id === nodeContextMenu.compId)?.type === 'junction' && (
+            <button
+              className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectComponent(nodeContextMenu.compId!, false);
+                pushHistory();
+                setTimeout(() => {
+                  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+                }, 50);
+                setNodeContextMenu(null);
+              }}
+            >
+              Xóa điểm
+            </button>
+          )}
+          <button
+            className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              setJunctionLabelInput({
+                wireId: nodeContextMenu.wireId || '', // Not needed for general labels but passed anyway
+                compId: nodeContextMenu.compId,
+                point: nodeContextMenu.point,
+                x: nodeContextMenu.x,
+                y: nodeContextMenu.y,
+              });
+              setNodeContextMenu(null);
+            }}
+          >
+            Đặt tên điểm
+          </button>
         </div>
       )}
     </>

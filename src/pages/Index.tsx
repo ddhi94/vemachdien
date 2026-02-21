@@ -22,7 +22,7 @@ const Index = () => {
   const getContentBounds = useCallback(() => {
     const padding = 38; // ~1cm at 96dpi
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    
+
     editor.components.forEach(comp => {
       const margin = comp.type === 'junction' || comp.type === 'terminal_positive' || comp.type === 'terminal_negative' ? 20 : 40;
       minX = Math.min(minX, comp.x - margin);
@@ -54,7 +54,7 @@ const Index = () => {
 
     const bounds = getContentBounds();
     const clone = svgElement.cloneNode(true) as SVGSVGElement;
-    
+
     // Remove the background rect, coordinates text
     clone.querySelectorAll('.canvas-bg').forEach(el => el.remove());
     const texts = clone.querySelectorAll(':scope > text');
@@ -116,7 +116,7 @@ const Index = () => {
     const result = buildExportSVG();
     if (!result) return;
     const { clone, bounds } = result;
-    
+
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(clone);
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -132,7 +132,7 @@ const Index = () => {
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
+
       const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
       canvas.toBlob((blob) => {
         if (!blob) return;
@@ -156,7 +156,7 @@ const Index = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      
+
       if (e.key === 'v' || e.key === 'V') setMode('select');
       if (e.key === 'w' || e.key === 'W') setMode('wire');
       if (e.key === 'h' || e.key === 'H') setHideNodes(prev => !prev);
@@ -197,7 +197,7 @@ const Index = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Palette */}
         <ComponentPalette onDragStart={setDragType} />
-        
+
         {/* Canvas area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <EditorToolbar
@@ -218,7 +218,7 @@ const Index = () => {
             showLabels={showLabels}
             onToggleShowLabels={() => setShowLabels(prev => !prev)}
           />
-          
+
           {/* Canvas */}
           <div className="flex-1 overflow-hidden">
             <CircuitCanvas
@@ -248,6 +248,7 @@ const Index = () => {
               getConnectionPoints={editor.getConnectionPoints}
               findNearestConnectionPoint={editor.findNearestConnectionPoint}
               pushHistory={editor.pushHistory}
+              setComponentLabel={editor.setComponentLabel}
               mode={mode}
               hideNodes={hideNodes}
               showLabels={showLabels}
@@ -260,7 +261,7 @@ const Index = () => {
       </div>
 
       {/* Status bar */}
-      <div 
+      <div
         className="flex items-center justify-between px-4 py-1 text-[11px] font-mono"
         style={{ background: 'hsl(var(--status-bar))', color: 'hsl(var(--status-foreground))' }}
       >
