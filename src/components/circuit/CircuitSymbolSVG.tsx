@@ -397,16 +397,18 @@ export const renderSymbolOnCanvas = (
         const drawBase = baseLen * planeScale;
         const drawHeight = height * planeScale;
 
+        const r = 12; // Radius of the angle arc
+
         return (
           <g>
             <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
             <polygon points={`${-drawBase / 2},${drawHeight / 2} ${drawBase / 2},${drawHeight / 2} ${drawBase / 2},${-drawHeight / 2}`} fill="#f8fafc" stroke={strokeColor} strokeWidth={sw} strokeLinejoin="round" />
-            <path d={`M ${-drawBase / 2 + 15} ${drawHeight / 2} A 15 15 0 0 0 ${-drawBase / 2 + 15 * Math.cos(angleRad)} ${drawHeight / 2 - 15 * Math.sin(angleRad)}`} fill="none" stroke={strokeColor} strokeWidth={1} />
+            <path d={`M ${-drawBase / 2 + r} ${drawHeight / 2} A ${r} ${r} 0 0 0 ${-drawBase / 2 + r * Math.cos(angleRad)} ${drawHeight / 2 - r * Math.sin(angleRad)}`} fill="none" stroke={strokeColor} strokeWidth={1} />
             {!isHidden && (
               <text
-                x={-drawBase / 2 + 15 * Math.cos(angleRad / 2) + (isQuestion ? 5 : 0)}
-                y={drawHeight / 2 - 10 * Math.sin(angleRad / 2)}
-                fontSize={9} fill={strokeColor} stroke="none" fontStyle="italic" textAnchor="start" alignmentBaseline="middle">
+                x={-drawBase / 2 + (r + 4) * Math.cos(angleRad / 2) + (isQuestion ? 2 : 0)}
+                y={drawHeight / 2 - (r + 4) * Math.sin(angleRad / 2)}
+                fontSize={8} fill={strokeColor} stroke="none" fontStyle="italic" textAnchor="start" alignmentBaseline="middle">
                 {displayAngle}
               </text>
             )}
