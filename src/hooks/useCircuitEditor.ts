@@ -9,9 +9,11 @@ const snapToGrid = (val: number) => Math.round(val / SNAP_SIZE) * SNAP_SIZE;
 
 // Pure function to get connection points for a component
 function calcConnectionPoints(comp: CircuitComponent): Point[] {
+  const isMech = comp.type.startsWith('mech_');
   const singlePointTypes: ComponentType[] = [
     'junction', 'terminal_positive', 'terminal_negative',
-    'ground', 'mech_support', 'mech_pendulum'
+    'ground', 'mech_support', 'mech_pendulum',
+    'mech_axis', 'mech_line_dashed', 'mech_arc', 'mech_trajectory', 'mech_vector'
   ];
   if (singlePointTypes.includes(comp.type)) {
     return [{ x: comp.x, y: comp.y }];
@@ -19,7 +21,38 @@ function calcConnectionPoints(comp: CircuitComponent): Point[] {
   const rad = (comp.rotation * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
-  const dx = 40; // Must be multiple of SNAP_SIZE (20) so points land on grid
+
+  let dx = 40; // Default for electrical
+  if (isMech) {
+    if (comp.type === 'mech_block') dx = 20; // Changed 15 -> 20 to align with grid
+    else if (comp.type === 'mech_spring' || comp.type === 'mech_cart') dx = 20;
+    else if (comp.type.startsWith('mech_pulley')) {
+      dx = 20; // Changed 16 -> 20 to align with grid
+    }
+
+    if (comp.type === 'mech_block' || comp.type === 'mech_cart') {
+      return [
+        { x: comp.x, y: comp.y }, // Center point for forces
+        { x: Math.round(comp.x + (-dx) * cos), y: Math.round(comp.y + (-dx) * sin) },
+        { x: Math.round(comp.x + dx * cos), y: Math.round(comp.y + dx * sin) },
+      ];
+    }
+  }
+
+  if (comp.type === 'mech_vector') {
+    return [{ x: comp.x, y: comp.y }];
+  }
+
+  if (comp.type === 'variable_resistor') {
+    const dxRes = 40;
+    // Slider C is offset by 15 units perpendicularly to the main axis
+    return [
+      { x: Math.round(comp.x + (-dxRes) * cos), y: Math.round(comp.y + (-dxRes) * sin) }, // M
+      { x: Math.round(comp.x + dxRes * cos), y: Math.round(comp.y + dxRes * sin) },  // N
+      { x: Math.round(comp.x + (-15) * sin), y: Math.round(comp.y + (15) * cos) }, // Slider C (approx)
+    ];
+  }
+
   return [
     { x: Math.round(comp.x + (-dx) * cos), y: Math.round(comp.y + (-dx) * sin) },
     { x: Math.round(comp.x + dx * cos), y: Math.round(comp.y + dx * sin) },
@@ -277,7 +310,14 @@ export function useCircuitEditor() {
     const dx = newPoint.x - oldPoint.x;
     const dy = newPoint.y - oldPoint.y;
 
-    setComponents(prev => prev.map(c => c.id === id ? { ...c, x: c.x + dx, y: c.y + dy } : c));
+    setComponents(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      return {
+        ...c,
+        x: snapToGrid(c.x + dx),
+        y: snapToGrid(c.y + dy)
+      };
+    }));
 
     setWires(prevWires => updateWiresWithOrthogonalRouting(prevWires, [{ old: oldPoint, new: newPoint }]));
   }, [pushHistory]);
@@ -485,6 +525,11 @@ export function useCircuitEditor() {
     }));
   }, []);
 
+  const updateComponentValue = useCallback((id: string, value: string) => {
+    // We don't push history for every mouse move (doing it in handleMouseUp instead)
+    setComponents(prev => prev.map(c => c.id === id ? { ...c, value } : c));
+  }, []);
+
   const loadParsedCircuit = useCallback((comps: CircuitComponent[], ws: Wire[]) => {
     pushHistory();
     setComponents(comps);
@@ -551,6 +596,7 @@ export function useCircuitEditor() {
     undo,
     clearAll,
     setComponentLabel,
+    updateComponentValue,
     moveLabel,
     loadParsedCircuit,
     handleZoom,

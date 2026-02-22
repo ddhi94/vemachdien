@@ -30,10 +30,12 @@ export const CircuitParserInput: React.FC<Props> = ({ onParse }) => {
     'R//R1nt(R2//R3)',
     'UntKdntR1nt(R2//R3)',
     'Unt(R1//R2)ntĐ',
+    'gd nt lx nt m',
+    'rr nt m',
   ];
 
   return (
-    <div 
+    <div
       className="border-t"
       style={{ background: 'hsl(var(--toolbar-bg))', borderColor: 'hsl(var(--toolbar-border))' }}
     >
@@ -66,7 +68,7 @@ export const CircuitParserInput: React.FC<Props> = ({ onParse }) => {
               Vẽ
             </button>
           </div>
-          
+
           <div className="flex flex-wrap gap-1.5">
             {examples.map(ex => (
               <button
@@ -81,7 +83,7 @@ export const CircuitParserInput: React.FC<Props> = ({ onParse }) => {
 
           <div className="text-[11px] text-muted-foreground space-y-0.5">
             <p><span className="font-mono font-medium">nt</span> = nối tiếp &nbsp; <span className="font-mono font-medium">//</span> = song song &nbsp; <span className="font-mono font-medium">()</span> = nhóm</p>
-            <p><span className="font-mono">R</span>=Điện trở <span className="font-mono">Rb</span>=Biến trở <span className="font-mono">U</span>=Nguồn <span className="font-mono">C</span>=Tụ điện <span className="font-mono">L</span>=Cuộn dây <span className="font-mono">Kd/Km</span>=Khóa</p>
+            <p><span className="font-mono">R</span>=Điện trở <span className="font-mono">U</span>=Nguồn <span className="font-mono">Kd/Km</span>=Khóa <span className="font-mono">lx</span>=lò xo <span className="font-mono">m</span>=vật <span className="font-mono">rr</span>=ròng rọc</p>
           </div>
         </div>
       )}

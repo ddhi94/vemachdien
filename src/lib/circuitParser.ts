@@ -12,27 +12,52 @@ interface ParsedNode {
   children?: ParsedNode[];
 }
 
-function identifyComponent(token: string): { type: ComponentType; label: string } {
-  const lower = token.toLowerCase();
+function identifyComponent(token: string): { type: ComponentType; label: string; value?: string } {
+  let lower = token.toLowerCase();
+  let value: string | undefined;
 
-  if (lower.startsWith('rb')) return { type: 'variable_resistor', label: token };
-  if (lower.startsWith('rq')) return { type: 'photoresistor', label: token };
-  if (lower.startsWith('kd')) return { type: 'switch_closed', label: token };
-  if (lower.startsWith('km')) return { type: 'switch_open', label: token };
-  if (lower.startsWith('led')) return { type: 'led', label: token };
-  if (lower === 'đ' || lower.startsWith('đ')) return { type: 'bulb', label: token };
-  if (lower.startsWith('r')) return { type: 'resistor', label: token };
-  if (lower.startsWith('u')) return { type: 'battery', label: token };
-  if (lower.startsWith('c')) return { type: 'capacitor', label: token };
-  if (lower.startsWith('l')) return { type: 'inductor', label: token };
-  if (lower === 'a' || lower.startsWith('a')) return { type: 'ammeter', label: token };
-  if (lower === 'v' || lower.startsWith('v')) return { type: 'voltmeter', label: token };
-  if (lower.startsWith('d')) return { type: 'diode', label: token };
-  if (lower === 'm' || lower.startsWith('m')) return { type: 'motor', label: token };
-  if (lower === 'g' || lower.startsWith('g')) return { type: 'generator', label: token };
-  if (lower.startsWith('ba')) return { type: 'transformer', label: token };
+  // Extract value from parentheses like cl(80)
+  const match = lower.match(/^([a-zđ]+)\(([^)]+)\)$/i);
+  if (match) {
+    lower = match[1];
+    value = match[2];
+  }
 
-  return { type: 'resistor', label: token };
+  // Cơ học (Ưu tiên kiểm tra trước tránh xung đột, Vd: 'cl' bị lẫn với 'c')
+  if (lower === 'lx' || lower.startsWith('lx')) return { type: 'mech_spring', label: token, value };
+  if (lower === 'mc' || lower.startsWith('mc')) return { type: 'mech_weight_circle', label: token, value };
+  if (lower === 'm' || (lower.startsWith('m') && !lower.startsWith('motor') && (lower.length === 1 || lower.includes('(')))) return { type: 'mech_block', label: token, value };
+  if (lower.startsWith('gd')) return { type: 'mech_support', label: token, value };
+  if (lower.startsWith('rr')) return { type: 'mech_pulley_fixed', label: token, value };
+  if (lower.startsWith('mpn')) return { type: 'mech_inclined_plane', label: token, value };
+  if (lower.startsWith('cl')) return { type: 'mech_pendulum', label: token, value };
+  if (lower.startsWith('xl')) return { type: 'mech_cart', label: token, value };
+  if (lower === 'f' || lower.startsWith('f(') || lower.startsWith('v_')) return { type: 'mech_vector', label: token, value };
+  if (lower.startsWith('trục') || lower.startsWith('truc') || lower.startsWith('ox')) return { type: 'mech_axis', label: token, value };
+  if (lower === 'oy' || lower.startsWith('oy')) return { type: 'mech_axis_y', label: token, value };
+  if (lower.startsWith('dóng') || lower.startsWith('dong') || lower.startsWith('dot')) return { type: 'mech_line_dashed', label: token, value };
+  if (lower.startsWith('cung')) return { type: 'mech_arc', label: token, value };
+  if (lower.startsWith('ném') || lower.startsWith('nem') || lower.startsWith('parabol')) return { type: 'mech_trajectory', label: token, value };
+
+  // Điện học
+  if (lower.startsWith('rb')) return { type: 'variable_resistor', label: token, value };
+  if (lower.startsWith('rq')) return { type: 'photoresistor', label: token, value };
+  if (lower.startsWith('kd')) return { type: 'switch_closed', label: token, value };
+  if (lower.startsWith('km')) return { type: 'switch_open', label: token, value };
+  if (lower.startsWith('led')) return { type: 'led', label: token, value };
+  if (lower === 'đ' || lower.startsWith('đ')) return { type: 'bulb', label: token, value };
+  if (lower.startsWith('r')) return { type: 'resistor', label: token, value };
+  if (lower.startsWith('u')) return { type: 'battery', label: token, value };
+  if (lower.startsWith('c')) return { type: 'capacitor', label: token, value };
+  if (lower.startsWith('l')) return { type: 'inductor', label: token, value };
+  if (lower === 'a' || lower.startsWith('a')) return { type: 'ammeter', label: token, value };
+  if (lower === 'v' || (lower.startsWith('v') && lower.length > 1 && !lower.startsWith('v_'))) return { type: 'voltmeter', label: token, value };
+  if (lower.startsWith('d')) return { type: 'diode', label: token, value };
+  if (lower.startsWith('m') && lower.length > 1) return { type: 'motor', label: token, value };
+  if (lower === 'g' || lower.startsWith('g')) return { type: 'generator', label: token, value };
+  if (lower.startsWith('ba')) return { type: 'transformer', label: token, value };
+
+  return { type: 'resistor', label: token, value };
 }
 
 function tokenize(input: string): string[] {
@@ -65,19 +90,17 @@ function tokenize(input: string): string[] {
       }
     } else {
       let name = '';
-      while (i < input.length && input[i] !== '/' && input[i] !== '(' && input[i] !== ')' && input[i] !== ' ') {
-        // Check for 'nt' operator mid-token
-        if (input[i].toLowerCase() === 'n' && i + 1 < input.length && input[i + 1].toLowerCase() === 't') {
-          // Check if what we have so far is a component name
-          if (name.length > 0) {
-            // Check what follows 'nt' - if it's another component or '(', treat as operator
-            const afterNt = i + 2 < input.length ? input[i + 2] : '';
-            if (afterNt === '(' || afterNt === '' || /[a-zA-ZĐđ]/.test(afterNt)) {
-              break; // Stop here, 'nt' will be picked up as operator
-            }
-          }
+      let parenLevel = 0;
+      while (i < input.length) {
+        const char = input[i];
+        if (char === '(') parenLevel++;
+        if (char === ')') parenLevel--;
+
+        if (parenLevel === 0 && (char === '/' || char === ' ' || (char === 'n' && input[i + 1]?.toLowerCase() === 't'))) {
+          break;
         }
-        name += input[i];
+
+        name += char;
         i++;
       }
       if (name) tokens.push(name);
@@ -134,7 +157,7 @@ function parseAtom(tokens: string[], pos: { index: number }): ParsedNode {
 
   pos.index++;
   const comp = identifyComponent(token);
-  return { type: 'component', componentType: comp.type, label: comp.label };
+  return { type: 'component', componentType: comp.type, label: comp.label, value: comp.value } as any;
 }
 
 // ============ LAYOUT ENGINE ============
@@ -150,14 +173,35 @@ interface LayoutBox {
 
 let idCounter = 0;
 
+function getComponentWidth(type: ComponentType, value?: string): number {
+  const params = value ? value.split(',').map(s => s.trim()) : [];
+  const val1 = params[0];
+  const val2 = params[1];
+  const scale = val2 ? parseFloat(val2) : 1;
+
+  let baseWidth = 80;
+  if (type === 'mech_spring') baseWidth = val1 ? parseFloat(val1) : 60;
+  else if (type === 'mech_block' || type === 'mech_weight_circle') baseWidth = 45;
+  else if (type === 'mech_support' || type === 'mech_inclined_plane') baseWidth = 80;
+  else if (type === 'mech_cart') baseWidth = 60;
+  else if (type === 'mech_pulley_fixed' || type === 'mech_pulley_movable') baseWidth = 44;
+  else if (type === 'mech_pendulum') baseWidth = 30;
+  else if (type === 'mech_vector') baseWidth = 40;
+  else if (type === 'mech_axis') baseWidth = val1 ? parseFloat(val1) : 100;
+  else if (type === 'mech_arc' || type === 'mech_line_dashed') baseWidth = val1 ? parseFloat(val1) : 60;
+  else if (type === 'mech_trajectory') baseWidth = val1 ? parseFloat(val1) : 120;
+  else return 80; // Default electrical
+
+  return baseWidth * scale;
+}
+
 function measureNode(node: ParsedNode): LayoutBox {
-  const COMP_W = 80; // component width including leads
-  const COMP_H = 40; // single component height
-  const SERIES_GAP = 20; // gap between series items
-  const PARALLEL_GAP = 50; // gap between parallel branches
+  const COMP_H = 40;
+  const SERIES_GAP = node.children?.every(c => c.componentType?.startsWith('mech_')) ? 0 : 20;
+  const PARALLEL_GAP = 50;
 
   if (node.type === 'component') {
-    return { width: COMP_W, height: COMP_H };
+    return { width: getComponentWidth(node.componentType!, (node as any).value), height: COMP_H };
   }
 
   if (node.type === 'series') {
@@ -171,6 +215,7 @@ function measureNode(node: ParsedNode): LayoutBox {
     });
     return { width: totalW, height: maxH };
   }
+  // ... rest of implementation stays logic-consistent
 
   if (node.type === 'parallel') {
     const children = node.children || [];
@@ -194,12 +239,12 @@ function layoutNode(
   components: CircuitComponent[],
   wires: Wire[],
 ): { leftX: number; rightX: number; topY: number; bottomY: number } {
-  const COMP_W = 80;
   const COMP_H = 40;
-  const SERIES_GAP = 20;
+  const SERIES_GAP = node.children?.every(c => c.componentType?.startsWith('mech_')) ? 0 : 20;
   const PARALLEL_GAP = 50;
 
   if (node.type === 'component') {
+    const compWidth = getComponentWidth(node.componentType!, (node as any).value);
     const comp: CircuitComponent = {
       id: `parsed_${idCounter++}`,
       type: node.componentType || 'resistor',
@@ -207,11 +252,12 @@ function layoutNode(
       y: cy,
       rotation: 0,
       label: node.label || '',
+      value: (node as any).value,
     };
     components.push(comp);
     return {
-      leftX: cx - 40, // Match exact component connection points (comp.x - 40)
-      rightX: cx + 40, // Match exact component connection points (comp.x + 40)
+      leftX: cx - compWidth / 2,
+      rightX: cx + compWidth / 2,
       topY: cy - COMP_H / 2,
       bottomY: cy + COMP_H / 2,
     };
@@ -235,8 +281,8 @@ function layoutNode(
       overallTop = Math.min(overallTop, bounds.topY);
       overallBottom = Math.max(overallBottom, bounds.bottomY);
 
-      // Connect to previous child with wire
-      if (i > 0) {
+      // Connect to previous child with wire ONLY if there is a gap
+      if (i > 0 && SERIES_GAP > 0) {
         const prev = childBounds[i - 1];
         wires.push({
           id: `wire_${idCounter++}`,

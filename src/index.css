@@ -91,7 +91,25 @@
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 212.7 26.8% 83.9%;
+    
+    /* Circuit editor specific - Dark Mode */
+    --canvas-bg: 222 47% 6%;
+    --canvas-grid: 215 25% 15%;
+    --canvas-grid-major: 215 25% 20%;
+    --wire-color: 210 40% 90%;
+    --component-stroke: 210 40% 95%;
+    --component-fill: 222 47% 6%;
+    --component-selected: 213 90% 65%;
+    --node-color: 213 90% 65%;
+    --palette-bg: 222 47% 4%;
+    --palette-foreground: 210 40% 90%;
+    --palette-hover: 215 25% 12%;
+    --palette-active: 213 50% 20%;
+    --toolbar-bg: 222 47% 6%;
+    --toolbar-border: 215 25% 15%;
+    --status-bar: 222 47% 3%;
+    --status-foreground: 215 20% 60%;
   }
 }
 

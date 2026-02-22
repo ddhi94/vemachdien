@@ -1,5 +1,5 @@
 import React from 'react';
-import { MousePointer2, Pen, RotateCcw, Trash2, ZoomIn, ZoomOut, Download, FileText, RotateCw, EyeOff, Eye, Tag } from 'lucide-react';
+import { MousePointer2, Pen, RotateCcw, Trash2, ZoomIn, ZoomOut, Download, FileText, RotateCw, EyeOff, Eye, Tag, Sun, Moon, LayoutTemplate } from 'lucide-react';
 
 interface Props {
   mode: 'select' | 'wire';
@@ -18,6 +18,10 @@ interface Props {
   onToggleHideNodes: () => void;
   showLabels: boolean;
   onToggleShowLabels: () => void;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
+  globalStrokeWidth: number;
+  onStrokeWidthChange: (val: number) => void;
 }
 
 export const EditorToolbar: React.FC<Props> = ({
@@ -37,13 +41,17 @@ export const EditorToolbar: React.FC<Props> = ({
   onToggleHideNodes,
   showLabels,
   onToggleShowLabels,
+  isDarkMode,
+  onToggleTheme,
+  globalStrokeWidth,
+  onStrokeWidthChange,
 }) => {
   const btnBase = "flex items-center justify-center w-9 h-9 rounded-md transition-colors duration-150";
   const btnActive = "bg-primary text-primary-foreground";
   const btnDefault = "hover:bg-secondary text-foreground";
 
   return (
-    <div 
+    <div
       className="flex items-center gap-1 px-3 py-1.5 border-b"
       style={{ background: 'hsl(var(--toolbar-bg))', borderColor: 'hsl(var(--toolbar-border))' }}
     >
@@ -103,6 +111,32 @@ export const EditorToolbar: React.FC<Props> = ({
         title={showLabels ? 'Ẩn tên linh kiện (L)' : 'Hiện tên linh kiện (L)'}
       >
         <Tag size={16} />
+      </button>
+
+      <div className="w-px h-6 bg-border mx-1" />
+
+      {/* Stroke Width control */}
+      <div className="flex items-center gap-2 px-2" title="Độ rộng nét vẽ chung (Stroke width)">
+        <span className="text-[11px] font-medium" style={{ color: 'hsl(var(--status-foreground))' }}>Nét: {globalStrokeWidth}px</span>
+        <input
+          type="range"
+          min="0.5"
+          max="5"
+          step="0.5"
+          value={globalStrokeWidth}
+          onChange={(e) => onStrokeWidthChange(parseFloat(e.target.value))}
+          className="w-16 accent-primary"
+        />
+      </div>
+
+      <div className="w-px h-6 bg-border mx-1" />
+
+      <button
+        className={`${btnBase} ${isDarkMode ? btnActive : btnDefault}`}
+        onClick={onToggleTheme}
+        title={isDarkMode ? 'Chế độ sáng' : 'Chế độ tối'}
+      >
+        {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
       </button>
 
       <div className="flex-1" />

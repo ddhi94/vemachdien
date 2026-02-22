@@ -6,6 +6,7 @@ import { CircuitParserInput } from '@/components/circuit/CircuitParserInput';
 import { useCircuitEditor } from '@/hooks/useCircuitEditor';
 import { ComponentType } from '@/types/circuit';
 import { Zap } from 'lucide-react';
+import { parseCircuitNotation } from '@/lib/circuitParser';
 
 const Index = () => {
   const editor = useCircuitEditor();
@@ -13,10 +14,38 @@ const Index = () => {
   const [dragType, setDragType] = useState<ComponentType | null>(null);
   const [hideNodes, setHideNodes] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [globalStrokeWidth, setGlobalStrokeWidth] = useState<number>(2);
+
+  // Theme effect
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const handleDrop = useCallback((type: ComponentType, x: number, y: number, label?: string) => {
     editor.addComponent(type, x, y, label || type);
   }, [editor]);
+
+  const TEMPLATES = [
+    { name: 'Mạch nối tiếp cơ bản', code: 'R1 nt R2 nt Đ' },
+    { name: 'Mạch song song cơ bản', code: 'R1 // R2' },
+    { name: 'Mạch cầu thang (Khóa 2 chiều)', code: 'U nt (Km // Kd) nt Đ' },
+    { name: 'Hệ cơ học: Lò xo & Vật nặng', code: 'gd nt lx nt m' },
+    { name: 'Mạch cầu Wheatstone', code: '(R1 // R2) nt (R3 // R4) // V' },
+    { name: 'Mạch hỗn hợp nâng cao', code: 'R1 nt (R2 // R3) nt (R4 // R5)' },
+    { name: 'Mạch Ampe kế & Biến trở', code: 'U nt A nt Rb nt Đ' },
+    { name: 'Ném xiên - Động lực học', code: 'trục_x nt trục_y nt ném nt v nt dóng' },
+    { name: 'Chuông điện', code: 'U nt K nt Ch' },
+  ];
+
+  const applyTemplate = (code: string) => {
+    const result = parseCircuitNotation(code);
+    editor.loadParsedCircuit(result.components, result.wires);
+  };
 
   // Calculate bounding box of all content
   const getContentBounds = useCallback(() => {
@@ -169,10 +198,20 @@ const Index = () => {
         e.preventDefault();
         editor.undo();
       }
+      if (e.key.startsWith('Arrow') && editor.selectedIds.length > 0) {
+        e.preventDefault();
+        const delta = e.shiftKey ? 10 : 1;
+        let dx = 0, dy = 0;
+        if (e.key === 'ArrowUp') dy = -delta;
+        if (e.key === 'ArrowDown') dy = delta;
+        if (e.key === 'ArrowLeft') dx = -delta;
+        if (e.key === 'ArrowRight') dx = delta;
+        editor.moveSelected(editor.selectedIds, dx, dy);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editor, handleRotate]);
+  }, [editor, handleRotate, setMode, setHideNodes, setShowLabels]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -182,14 +221,36 @@ const Index = () => {
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <Zap size={18} className="text-primary-foreground" />
           </div>
-          <div>
-            <h1 className="text-sm font-semibold" style={{ color: 'hsl(var(--palette-foreground))' }}>
-              Sơ Đồ Mạch Điện
-            </h1>
-            <p className="text-[10px]" style={{ color: 'hsl(var(--status-foreground))' }}>
-              Vẽ sơ đồ nguyên lí mạch điện
-            </p>
+          <div className="flex flex-row items-center gap-3">
+            <div>
+              <h1 className="text-sm font-semibold" style={{ color: 'hsl(var(--palette-foreground))' }}>
+                Sơ Đồ Mạch Điện
+              </h1>
+              <p className="text-[10px]" style={{ color: 'hsl(var(--status-foreground))' }}>
+                Vẽ sơ đồ nguyên lí mạch điện
+              </p>
+            </div>
+            <div className="h-6 w-px bg-border mx-2"></div>
+            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md border">
+              Phát triển bởi Hieudd
+            </span>
           </div>
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-2">
+          <label className="text-[11px] font-medium" style={{ color: 'hsl(var(--status-foreground))' }}>Mẫu sơ đồ:</label>
+          <select
+            className="bg-secondary text-foreground text-xs rounded border-none px-2 py-1 focus:ring-1 focus:ring-primary outline-none"
+            onChange={(e) => e.target.value && applyTemplate(e.target.value)}
+            defaultValue=""
+          >
+            <option value="" disabled>--- Chọn mẫu ---</option>
+            {TEMPLATES.map(t => (
+              <option key={t.name} value={t.code}>{t.name}</option>
+            ))}
+          </select>
         </div>
       </header>
 
@@ -217,6 +278,10 @@ const Index = () => {
             onToggleHideNodes={() => setHideNodes(prev => !prev)}
             showLabels={showLabels}
             onToggleShowLabels={() => setShowLabels(prev => !prev)}
+            isDarkMode={isDarkMode}
+            onToggleTheme={() => setIsDarkMode(prev => !isDarkMode)}
+            globalStrokeWidth={globalStrokeWidth}
+            onStrokeWidthChange={setGlobalStrokeWidth}
           />
 
           {/* Canvas */}
@@ -228,6 +293,7 @@ const Index = () => {
               drawingWire={editor.drawingWire}
               pan={editor.pan}
               zoom={editor.zoom}
+              globalStrokeWidth={globalStrokeWidth}
               setPan={editor.setPan}
               onDrop={handleDrop}
               onSelectComponent={editor.selectComponent}
@@ -238,6 +304,7 @@ const Index = () => {
               onRotateComponent={editor.rotateComponent}
               onToggleSwitch={editor.toggleSwitch}
               onClearSelection={editor.clearSelection}
+              updateComponentValue={editor.updateComponentValue}
               onStartWire={editor.startDrawingWire}
               onFinishWire={editor.finishDrawingWire}
               onCancelWire={editor.cancelDrawingWire}
