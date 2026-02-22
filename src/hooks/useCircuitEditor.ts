@@ -9,7 +9,11 @@ const snapToGrid = (val: number) => Math.round(val / SNAP_SIZE) * SNAP_SIZE;
 
 // Pure function to get connection points for a component
 function calcConnectionPoints(comp: CircuitComponent): Point[] {
-  if (comp.type === 'junction' || comp.type === 'terminal_positive' || comp.type === 'terminal_negative') {
+  const singlePointTypes: ComponentType[] = [
+    'junction', 'terminal_positive', 'terminal_negative',
+    'ground', 'mech_support', 'mech_pendulum'
+  ];
+  if (singlePointTypes.includes(comp.type)) {
     return [{ x: comp.x, y: comp.y }];
   }
   const rad = (comp.rotation * Math.PI) / 180;
@@ -21,6 +25,103 @@ function calcConnectionPoints(comp: CircuitComponent): Point[] {
     { x: Math.round(comp.x + dx * cos), y: Math.round(comp.y + dx * sin) },
   ];
 }
+
+const isVertical = (pa: Point, pb: Point) => Math.abs(pa.x - pb.x) < 2;
+const isHorizontal = (pa: Point, pb: Point) => Math.abs(pa.y - pb.y) < 2;
+
+const updateWiresWithOrthogonalRouting = (wires: Wire[], ptMap: { old: Point, new: Point }[]): Wire[] => {
+  return wires.map(wire => {
+    let changed = false;
+    let newPoints = [...wire.points];
+    let p0Moved = false;
+    let pLastMoved = false;
+
+    // Check endpoints first (we only auto-route if endpoints move)
+    for (let i = 0; i < newPoints.length; i++) {
+      if (i !== 0 && i !== newPoints.length - 1) continue;
+
+      for (const pm of ptMap) {
+        if (Math.abs(newPoints[i].x - pm.old.x) < 5 && Math.abs(newPoints[i].y - pm.old.y) < 5) {
+          newPoints[i] = { x: pm.new.x, y: pm.new.y };
+          changed = true;
+          if (i === 0) p0Moved = true;
+          if (i === newPoints.length - 1) pLastMoved = true;
+          break;
+        }
+      }
+    }
+
+    if (!changed) return wire;
+
+    // Apply orthogonal routing rules
+    if (newPoints.length === 2) {
+      if (p0Moved && pLastMoved) {
+        // Group move, keep as is
+      } else if (!isVertical(newPoints[0], newPoints[1]) && !isHorizontal(newPoints[0], newPoints[1])) {
+        if (p0Moved) {
+          newPoints.splice(1, 0, { x: newPoints[1].x, y: newPoints[0].y });
+        } else if (pLastMoved) {
+          newPoints.splice(1, 0, { x: newPoints[0].x, y: newPoints[1].y });
+        }
+      }
+    } else if (newPoints.length >= 3) {
+      if (p0Moved) {
+        const p0 = newPoints[0];
+        const p1 = newPoints[1];
+        const p2 = newPoints[2];
+        if (!isVertical(p0, p1) && !isHorizontal(p0, p1)) {
+          if (isVertical(p1, p2)) {
+            newPoints[1] = { x: p1.x, y: p0.y };
+          } else if (isHorizontal(p1, p2)) {
+            newPoints[1] = { x: p0.x, y: p1.y };
+          } else {
+            newPoints.splice(1, 0, { x: p1.x, y: p0.y });
+          }
+        }
+      }
+      if (pLastMoved) {
+        const lastIdx = newPoints.length - 1;
+        const pLast = newPoints[lastIdx];
+        const pPrev = newPoints[lastIdx - 1];
+        const pPrevPrev = newPoints[lastIdx - 2];
+        // Ensure pPrev and pLast are not orthogonal
+        if (!isVertical(pLast, pPrev) && !isHorizontal(pLast, pPrev)) {
+          if (isVertical(pPrev, pPrevPrev)) {
+            newPoints[lastIdx - 1] = { x: pPrev.x, y: pLast.y };
+          } else if (isHorizontal(pPrev, pPrevPrev)) {
+            newPoints[lastIdx - 1] = { x: pLast.x, y: pPrev.y };
+          } else {
+            newPoints.splice(lastIdx, 0, { x: pPrev.x, y: pLast.y });
+          }
+        }
+      }
+    }
+
+    // Clean up collinear points
+    const cleaned = [newPoints[0]];
+    for (let i = 1; i < newPoints.length - 1; i++) {
+      const prev = cleaned[cleaned.length - 1];
+      const curr = newPoints[i];
+      const next = newPoints[i + 1];
+
+      if (Math.abs(curr.x - prev.x) < 1 && Math.abs(curr.y - prev.y) < 1) continue;
+
+      if ((isVertical(prev, curr) && isVertical(curr, next)) ||
+        (isHorizontal(prev, curr) && isHorizontal(curr, next))) {
+        continue; // skip collinear middle point
+      }
+      cleaned.push(curr);
+    }
+    const lastP = newPoints[newPoints.length - 1];
+    if (Math.abs(lastP.x - cleaned[cleaned.length - 1].x) > 1 || Math.abs(lastP.y - cleaned[cleaned.length - 1].y) > 1) {
+      cleaned.push(lastP);
+    }
+
+    if (cleaned.length < 2) cleaned.push({ ...lastP });
+
+    return { ...wire, points: cleaned };
+  });
+};
 
 interface HistoryState {
   components: CircuitComponent[];
@@ -107,20 +208,7 @@ export function useCircuitEditor() {
         ptMap.push({ old: oldPts[i], new: newPts[i] });
       }
 
-      // Update wires that are connected to these points — use threshold 5 for reliability
-      setWires(prevWires => prevWires.map(wire => {
-        let changed = false;
-        const newPoints = wire.points.map(wp => {
-          for (const pm of ptMap) {
-            if (Math.abs(wp.x - pm.old.x) < 5 && Math.abs(wp.y - pm.old.y) < 5) {
-              changed = true;
-              return { x: pm.new.x, y: pm.new.y };
-            }
-          }
-          return wp;
-        });
-        return changed ? { ...wire, points: newPoints } : wire;
-      }));
+      setWires(prevWires => updateWiresWithOrthogonalRouting(prevWires, ptMap));
 
       return prev.map(c => c.id === id ? newComp : c);
     });
@@ -146,31 +234,17 @@ export function useCircuitEditor() {
 
       // Move wires connected to selected components
       setWires(prevWires => {
-        // Also move wires that are fully selected
         const selectedWireIds = new Set(ids.filter(id => prevWires.some(w => w.id === id)));
-
-        return prevWires.map(wire => {
-          // If wire itself is selected, move all its points
+        const modifiedWires = prevWires.map(wire => {
           if (selectedWireIds.has(wire.id)) {
             return {
               ...wire,
               points: wire.points.map(wp => ({ x: wp.x + dx, y: wp.y + dy })),
             };
           }
-
-          // Otherwise, move only points connected to selected components
-          let changed = false;
-          const newPoints = wire.points.map(wp => {
-            for (const pm of allOldPts) {
-              if (Math.abs(wp.x - pm.old.x) < 5 && Math.abs(wp.y - pm.old.y) < 5) {
-                changed = true;
-                return { x: pm.new.x, y: pm.new.y };
-              }
-            }
-            return wp;
-          });
-          return changed ? { ...wire, points: newPoints } : wire;
+          return wire;
         });
+        return updateWiresWithOrthogonalRouting(modifiedWires, allOldPts);
       });
 
       // Move selected components
@@ -190,28 +264,64 @@ export function useCircuitEditor() {
 
       // Update connected wires
       const ptMap = oldPts.map((old, i) => ({ old, new: newPts[i] }));
-      setWires(prevWires => prevWires.map(wire => {
-        let changed = false;
-        const newPoints = wire.points.map(wp => {
-          for (const pm of ptMap) {
-            if (Math.abs(wp.x - pm.old.x) < 5 && Math.abs(wp.y - pm.old.y) < 5) {
-              changed = true;
-              return { x: pm.new.x, y: pm.new.y };
-            }
-          }
-          return wp;
-        });
-        return changed ? { ...wire, points: newPoints } : wire;
-      }));
+      setWires(prevWires => updateWiresWithOrthogonalRouting(prevWires, ptMap));
 
       return prev.map(c => c.id === id ? newComp : c);
     });
   }, [pushHistory]);
 
+  const moveComponentNode = useCallback((id: string, oldPoint: Point, newPoint: Point) => {
+    pushHistory();
+    // Move the component if the node being dragged IS the component itself (e.g. junction, terminal)
+    // If it's a connection node on a resistor/etc., we effectively need to move the whole component according to the delta so it stays attached.
+    const dx = newPoint.x - oldPoint.x;
+    const dy = newPoint.y - oldPoint.y;
+
+    setComponents(prev => prev.map(c => c.id === id ? { ...c, x: c.x + dx, y: c.y + dy } : c));
+
+    setWires(prevWires => updateWiresWithOrthogonalRouting(prevWires, [{ old: oldPoint, new: newPoint }]));
+  }, [pushHistory]);
+
   const deleteSelected = useCallback(() => {
     pushHistory();
-    setComponents(prev => prev.filter(c => !selectedIds.includes(c.id)));
-    setWires(prev => prev.filter(w => !selectedIds.includes(w.id)));
+    let deletedJunctions: CircuitComponent[] = [];
+    setComponents(prevComps => {
+      deletedJunctions = prevComps.filter(c => selectedIds.includes(c.id) && c.type === 'junction');
+      return prevComps.filter(c => !selectedIds.includes(c.id));
+    });
+
+    setWires(prevWires => {
+      let newWires = prevWires.filter(w => !selectedIds.includes(w.id));
+
+      // Auto heal wires if a junction connecting exactly 2 wires is deleted
+      deletedJunctions.forEach(j => {
+        const connectingWires = newWires.filter(w => {
+          const first = w.points[0];
+          const last = w.points[w.points.length - 1];
+          return (Math.abs(first.x - j.x) < 2 && Math.abs(first.y - j.y) < 2) ||
+            (Math.abs(last.x - j.x) < 2 && Math.abs(last.y - j.y) < 2);
+        });
+
+        if (connectingWires.length === 2) {
+          const [w1, w2] = connectingWires;
+          const w1First = Math.abs(w1.points[0].x - j.x) < 2 && Math.abs(w1.points[0].y - j.y) < 2;
+          const w2First = Math.abs(w2.points[0].x - j.x) < 2 && Math.abs(w2.points[0].y - j.y) < 2;
+
+          let pts1 = [...w1.points];
+          let pts2 = [...w2.points];
+
+          if (w1First) pts1.reverse();
+          if (!w2First) pts2.reverse();
+
+          // Merge avoiding the duplicate point at junction
+          const mergedPoints = [...pts1, ...pts2.slice(1)];
+          newWires = newWires.filter(w => w.id !== w1.id && w.id !== w2.id);
+          newWires.push({ id: genWireId(), points: mergedPoints });
+        }
+      });
+
+      return newWires;
+    });
     setSelectedIds([]);
   }, [selectedIds, pushHistory]);
 
@@ -250,7 +360,7 @@ export function useCircuitEditor() {
         // Use exact endpoint from caller — do NOT re-snap, it's already precise
         const last = finalPoints[finalPoints.length - 1];
         // Orthogonal routing
-        if (last.x !== endPoint.x && last.y !== endPoint.y) {
+        if (Math.abs(last.x - endPoint.x) > 5 && Math.abs(last.y - endPoint.y) > 5) {
           finalPoints.push({ x: endPoint.x, y: last.y });
         }
         finalPoints.push({ x: endPoint.x, y: endPoint.y });
@@ -367,6 +477,14 @@ export function useCircuitEditor() {
     setComponents(prev => prev.map(c => c.id === id ? { ...c, label } : c));
   }, [pushHistory]);
 
+  const moveLabel = useCallback((id: string, dx: number, dy: number) => {
+    setComponents(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      const currentOffset = c.labelOffset || { x: 0, y: 0 };
+      return { ...c, labelOffset: { x: currentOffset.x + dx, y: currentOffset.y + dy } };
+    }));
+  }, []);
+
   const loadParsedCircuit = useCallback((comps: CircuitComponent[], ws: Wire[]) => {
     pushHistory();
     setComponents(comps);
@@ -414,6 +532,7 @@ export function useCircuitEditor() {
     setPan,
     addComponent,
     moveComponent,
+    moveComponentNode,
     moveSelected,
     rotateComponent,
     deleteSelected,
@@ -432,6 +551,7 @@ export function useCircuitEditor() {
     undo,
     clearAll,
     setComponentLabel,
+    moveLabel,
     loadParsedCircuit,
     handleZoom,
     setZoom,

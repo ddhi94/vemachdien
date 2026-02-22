@@ -464,6 +464,167 @@ export const renderSymbolOnCanvas = (
         </g>
       );
 
+    case 'motor':
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
+          <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">M</text>
+          <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'generator':
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
+          <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">G</text>
+          {/* Or draw a sine wave ~ inside */}
+          <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'photoresistor':
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-15} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <rect x={-15} y={-5} width={30} height={10} fill="none" stroke={strokeColor} strokeWidth={sw} />
+          <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={18} fill="none" stroke={strokeColor} strokeWidth={1} strokeDasharray="2 2" />
+          <path d="M -10 -25 L -4 -15 M -4 -25 L 2 -15" stroke={strokeColor} strokeWidth={1.5} markerEnd="url(#arrowhead)" />
+        </g>
+      );
+
+    case 'transformer':
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-15} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <path d="M -15 0 A 5 5 0 0 1 -5 0 A 5 5 0 0 1 5 0 A 5 5 0 0 1 15 0" fill="none" stroke={strokeColor} strokeWidth={sw} transform="translate(0, -8)" />
+          <line x1={-10} y1={-2} x2={10} y2={-2} stroke={strokeColor} strokeWidth={2} />
+          <line x1={-10} y1={2} x2={10} y2={2} stroke={strokeColor} strokeWidth={2} />
+          <path d="M -15 0 A 5 5 0 0 0 -5 0 A 5 5 0 0 0 5 0 A 5 5 0 0 0 15 0" fill="none" stroke={strokeColor} strokeWidth={sw} transform="translate(0, 8)" />
+          <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'ground':
+      return (
+        <g>
+          <line x1={0} y1={0} x2={0} y2={10} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={-8} y1={10} x2={8} y2={10} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={-5} y1={14} x2={5} y2={14} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={-2} y1={18} x2={2} y2={18} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    // ================= MECHANICS =================
+
+    case 'mech_support':
+      // Giá đỡ (Bức tường / Trần nhà)
+      return (
+        <g>
+          <line x1={-20} y1={0} x2={20} y2={0} stroke={strokeColor} strokeWidth={sw + 1} />
+          {[-15, -5, 5, 15].map((x, i) => (
+            <line key={i} x1={x} y1={0} x2={x + 5} y2={-8} stroke={strokeColor} strokeWidth={1} />
+          ))}
+          {/* Connection point dot for clarity */}
+          <circle cx={0} cy={0} r={2} fill={strokeColor} />
+        </g>
+      );
+
+    case 'mech_spring':
+      // Lò xo
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-20} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <polyline
+            points="-20,0 -15,-8 -5,8 5,-8 15,8 20,0"
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={sw}
+            strokeLinejoin="round"
+          />
+          <line x1={20} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'mech_block':
+      // Vật nặng m
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-20} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <rect x={-20} y={-15} width={40} height={30} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} rx={2} />
+          <text x={0} y={4} fontSize={14} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">m</text>
+          <line x1={20} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'mech_pulley_fixed':
+      // Ròng rọc cố định
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} /> {/* Invisible bounding lead */}
+          <circle cx={0} cy={0} r={16} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={4} fill={strokeColor} />
+          {/* Dây vắt qua ròng rọc */}
+          <path d="M -16 0 A 16 16 0 0 1 16 0" fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
+          <line x1={-16} y1={0} x2={-16} y2={25} stroke={strokeColor} strokeWidth={1.5} />
+          <line x1={16} y1={0} x2={16} y2={25} stroke={strokeColor} strokeWidth={1.5} />
+          {/* Giá treo */}
+          <path d="M 0 0 L 0 -16 M -8 -16 L 8 -16 M -4 -20 L -8 -16 M 0 -20 L -4 -16 M 4 -20 L 0 -16 M 8 -20 L 4 -16" stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'mech_pulley_movable':
+      // Ròng rọc động
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
+          <circle cx={0} cy={0} r={16} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={4} fill={strokeColor} />
+          <path d="M -16 0 A 16 16 0 0 0 16 0" fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
+          <line x1={-16} y1={0} x2={-16} y2={-25} stroke={strokeColor} strokeWidth={1.5} />
+          <line x1={16} y1={0} x2={16} y2={-25} stroke={strokeColor} strokeWidth={1.5} />
+          {/* Vật treo */}
+          <line x1={0} y1={0} x2={0} y2={16} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'mech_inclined_plane':
+      // Mặt phẳng nghiêng
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
+          <polygon points="-30,15 30,15 30,-15" fill="#f8fafc" stroke={strokeColor} strokeWidth={sw} strokeLinejoin="round" />
+          <path d="M -15 15 A 15 15 0 0 0 -12 7" fill="none" stroke={strokeColor} strokeWidth={1} />
+          <text x={-6} y={12} fontSize={10} fill={strokeColor}>α</text>
+        </g>
+      );
+
+    case 'mech_pendulum':
+      // Con lắc đơn
+      return (
+        <g>
+          <line x1={-10} y1={0} x2={10} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={0} y1={0} x2={0} y2={40} stroke={strokeColor} strokeWidth={1} />
+          <circle cx={0} cy={40} r={8} fill="#94a3b8" stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
+    case 'mech_cart':
+      // Xe lăn
+      return (
+        <g>
+          <line x1={-hw} y1={0} x2={-20} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <rect x={-20} y={-15} width={40} height={20} fill="#f1f5f9" stroke={strokeColor} strokeWidth={sw} rx={2} />
+          <circle cx={-10} cy={9} r={4} fill="white" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={10} cy={9} r={4} fill="white" stroke={strokeColor} strokeWidth={sw} />
+          <line x1={0} y1={5} x2={0} y2={12} stroke="transparent" /> {/* connection point gap cover */}
+          <line x1={20} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+        </g>
+      );
+
     default:
       return <rect x={-hw} y={-hh} width={size} height={hh * 2} fill="none" stroke={strokeColor} strokeWidth={sw} />;
   }

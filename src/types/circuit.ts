@@ -17,7 +17,22 @@ export type ComponentType =
   | 'junction'       // Điểm nối A, B, C, D
   | 'terminal_positive' // Cực dương +
   | 'terminal_negative' // Cực âm −
-  | 'wire';          // Dây dẫn
+  | 'wire'           // Dây dẫn
+  // Ký hiệu điện học nâng cao
+  | 'motor'          // Động cơ điện M
+  | 'generator'      // Máy phát điện G
+  | 'ground'         // Nối đất
+  | 'photoresistor'  // Quang trở
+  | 'transformer'    // Biến áp
+  // Ký hiệu cơ học
+  | 'mech_support'   // Điểm tựa / Mặt phẳng cố định
+  | 'mech_spring'    // Lò xo
+  | 'mech_block'     // Vật nặng m
+  | 'mech_pulley_fixed' // Ròng rọc cố định
+  | 'mech_pulley_movable' // Ròng rọc động
+  | 'mech_inclined_plane' // Mặt phẳng nghiêng
+  | 'mech_pendulum'  // Con lắc đơn
+  | 'mech_cart';     // Xe lăn
 
 export interface Point {
   x: number;
@@ -31,6 +46,7 @@ export interface CircuitComponent {
   y: number;
   rotation: number; // 0, 90, 180, 270
   label: string;
+  labelOffset?: Point; // Used for dragging just the label text relative to the component
   value?: string;
   selected?: boolean;
 }
@@ -51,7 +67,7 @@ export interface PaletteItem {
   type: ComponentType;
   label: string;
   shortLabel: string;
-  category: 'passive' | 'source' | 'switch' | 'meter' | 'other' | 'point';
+  category: 'passive' | 'source' | 'switch' | 'meter' | 'other' | 'point' | 'mechanic';
 }
 
 export const PALETTE_ITEMS: PaletteItem[] = [
@@ -79,6 +95,21 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'junction', label: 'Điểm E', shortLabel: 'E', category: 'point' },
   { type: 'junction', label: 'Điểm M', shortLabel: 'M', category: 'point' },
   { type: 'junction', label: 'Điểm N', shortLabel: 'N', category: 'point' },
+  // Nâng cao (Điện)
+  { type: 'motor', label: 'Động cơ', shortLabel: 'M', category: 'other' },
+  { type: 'generator', label: 'Máy phát', shortLabel: 'G', category: 'source' },
+  { type: 'photoresistor', label: 'Quang trở', shortLabel: 'Rq', category: 'passive' },
+  { type: 'transformer', label: 'Biến áp', shortLabel: 'BA', category: 'other' },
+  { type: 'ground', label: 'Nối đất', shortLabel: 'Gnd', category: 'point' },
+  // Cơ học
+  { type: 'mech_block', label: 'Vật khối lượng m', shortLabel: 'm', category: 'mechanic' },
+  { type: 'mech_spring', label: 'Lò xo', shortLabel: 'k', category: 'mechanic' },
+  { type: 'mech_support', label: 'Giá đỡ cố định', shortLabel: 'Giá', category: 'mechanic' },
+  { type: 'mech_pulley_fixed', label: 'Ròng rọc cố định', shortLabel: 'RRc', category: 'mechanic' },
+  { type: 'mech_pulley_movable', label: 'Ròng rọc động', shortLabel: 'RRđ', category: 'mechanic' },
+  { type: 'mech_inclined_plane', label: 'Mặt phẳng nghiêng', shortLabel: 'MPN', category: 'mechanic' },
+  { type: 'mech_pendulum', label: 'Con lắc đơn', shortLabel: 'Con lắc', category: 'mechanic' },
+  { type: 'mech_cart', label: 'Xe lăn', shortLabel: 'Xe', category: 'mechanic' },
 ];
 
 export const GRID_SIZE = 20;

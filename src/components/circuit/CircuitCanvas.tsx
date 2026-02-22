@@ -14,6 +14,7 @@ interface Props {
   onSelectComponent: (id: string, multi: boolean) => void;
   onSelectMany: (ids: string[]) => void;
   onMoveComponent: (id: string, x: number, y: number) => void;
+  onMoveComponentNode: (id: string, oldPoint: Point, newPoint: Point) => void;
   onMoveSelected: (ids: string[], dx: number, dy: number) => void;
   onRotateComponent: (id: string) => void;
   onToggleSwitch: (id: string) => void;
@@ -30,6 +31,7 @@ interface Props {
   findNearestConnectionPoint: (point: Point, threshold?: number) => { compId: string; point: Point } | null;
   pushHistory: () => void;
   setComponentLabel: (id: string, label: string) => void;
+  moveLabel: (id: string, dx: number, dy: number) => void;
   mode: 'select' | 'wire';
   hideNodes: boolean;
   showLabels: boolean;
@@ -56,6 +58,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   onSelectComponent,
   onSelectMany,
   onMoveComponent,
+  onMoveComponentNode,
   onMoveSelected,
   onRotateComponent,
   onToggleSwitch,
@@ -72,6 +75,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   findNearestConnectionPoint,
   pushHistory,
   setComponentLabel,
+  moveLabel,
   mode,
   hideNodes,
   showLabels,
@@ -86,8 +90,14 @@ export const CircuitCanvas: React.FC<Props> = ({
   const [wireDrawing, setWireDrawing] = useState(false);
   const [wireClickedOnWire, setWireClickedOnWire] = useState<{ wireId: string; point: Point } | null>(null);
   const [junctionLabelInput, setJunctionLabelInput] = useState<{ wireId: string; compId: string | null; point: Point; x: number; y: number } | null>(null);
-  // Wire point dragging state
+
+  // Dragging state
   const [draggingWirePoint, setDraggingWirePoint] = useState<{ wireId: string; pointIndex: number } | null>(null);
+  const [draggingCompNode, setDraggingCompNode] = useState<{ compId: string; oldPoint: Point } | null>(null);
+  const [draggingLabel, setDraggingLabel] = useState<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number } | null>(null);
+
+  // Alignment guide state
+  const [alignmentGuides, setAlignmentGuides] = useState<{ x: number | null, y: number | null }>({ x: null, y: null });
 
   const getSVGPoint = useCallback((clientX: number, clientY: number): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -118,6 +128,29 @@ export const CircuitCanvas: React.FC<Props> = ({
     });
     return pts;
   }, [components, wires, getConnectionPoints]);
+
+  const snapToAlignment = useCallback((point: Point, excludeCompId?: string) => {
+    let bestX = snapToGrid(point.x);
+    let bestY = snapToGrid(point.y);
+    let alignX: number | null = null;
+    let alignY: number | null = null;
+    const threshold = 10;
+
+    for (const cp of allConnectionPoints) {
+      if (excludeCompId && cp.compId === excludeCompId) continue;
+
+      if (Math.abs(point.x - cp.point.x) < threshold) {
+        bestX = cp.point.x;
+        alignX = cp.point.x;
+      }
+      if (Math.abs(point.y - cp.point.y) < threshold) {
+        bestY = cp.point.y;
+        alignY = cp.point.y;
+      }
+    }
+
+    return { point: { x: bestX, y: bestY }, guides: { x: alignX, y: alignY } };
+  }, [allConnectionPoints]);
 
   // Find snap target near mouse
   const snapTarget = useMemo(() => {
@@ -218,25 +251,53 @@ export const CircuitCanvas: React.FC<Props> = ({
       return;
     }
 
+    if (draggingLabel) {
+      const sx = snapToGrid(point.x - draggingLabel.offsetX);
+      const sy = snapToGrid(point.y - draggingLabel.offsetY);
+      const dx = sx - draggingLabel.startX;
+      const dy = sy - draggingLabel.startY;
+      if (dx !== 0 || dy !== 0) {
+        moveLabel(draggingLabel.id, dx, dy);
+        setDraggingLabel(prev => prev ? { ...prev, startX: sx, startY: sy } : null);
+      }
+      return;
+    }
+
+    if (draggingCompNode) {
+      const { point: snappedPoint, guides } = snapToAlignment(point, draggingCompNode.compId);
+      setAlignmentGuides(guides);
+      if (snappedPoint.x !== draggingCompNode.oldPoint.x || snappedPoint.y !== draggingCompNode.oldPoint.y) {
+        onMoveComponentNode(draggingCompNode.compId, draggingCompNode.oldPoint, snappedPoint);
+        setDraggingCompNode({ compId: draggingCompNode.compId, oldPoint: snappedPoint });
+      }
+      return;
+    }
+
     if (dragging) {
-      const x = point.x - dragging.offsetX;
-      const y = point.y - dragging.offsetY;
+      const rawX = point.x - dragging.offsetX;
+      const rawY = point.y - dragging.offsetY;
+
       if (dragging.isGroup) {
-        const sx = snapToGrid(x);
-        const sy = snapToGrid(y);
+        const sx = snapToGrid(rawX);
+        const sy = snapToGrid(rawY);
         const dx = sx - dragging.startX;
         const dy = sy - dragging.startY;
         if (dx !== 0 || dy !== 0) {
           onMoveSelected(selectedIds, dx, dy);
           setDragging(prev => prev ? { ...prev, startX: sx, startY: sy } : null);
         }
+        setAlignmentGuides({ x: null, y: null });
       } else {
-        onMoveComponent(dragging.id, x, y);
+        const { point: snapped, guides } = snapToAlignment({ x: rawX, y: rawY }, dragging.id);
+        setAlignmentGuides(guides);
+        onMoveComponent(dragging.id, snapped.x, snapped.y);
       }
     }
-  }, [getSVGPoint, panning, dragging, marquee, wireDrawing, drawingWire, draggingWirePoint, mode, setPan, onMoveComponent, onMoveSelected, onMoveWirePoint, selectedIds, findNearestConnectionPoint]);
+  }, [getSVGPoint, panning, dragging, marquee, wireDrawing, drawingWire, draggingWirePoint, draggingCompNode, draggingLabel, mode, setPan, onMoveComponent, onMoveComponentNode, onMoveSelected, onMoveWirePoint, moveLabel, selectedIds, findNearestConnectionPoint, snapToAlignment]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    setAlignmentGuides({ x: null, y: null });
+
     if (panning) setPanning(null);
 
     if (panning) setPanning(null);
@@ -261,6 +322,13 @@ export const CircuitCanvas: React.FC<Props> = ({
       setDraggingWirePoint(null);
       return;
     }
+
+    if (draggingCompNode) {
+      setDraggingCompNode(null);
+      return;
+    }
+
+    if (draggingLabel) setDraggingLabel(null);
 
     if (dragging) setDragging(null);
 
@@ -307,16 +375,18 @@ export const CircuitCanvas: React.FC<Props> = ({
     }
   }, [getSVGPoint, onDrop]);
 
-  // Start wire from connection point by dragging
+  // Start wire from connection point or drag it if in select mode
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, compPoint: Point) => {
     e.stopPropagation();
     e.preventDefault();
-    if (e.button === 0) { // Left click to draw wire
-      onStartWire(compPoint);
-      setWireDrawing(true);
-      setNodeContextMenu(null);
+    if (e.button === 0) { // Left click
+      if (mode === 'wire' || e.altKey) {
+        onStartWire(compPoint);
+        setWireDrawing(true);
+        setNodeContextMenu(null);
+      }
     }
-  }, [onStartWire]);
+  }, [mode, onStartWire]);
 
   // Context menu on right click for junction points
   const [nodeContextMenu, setNodeContextMenu] = useState<{ point: Point; compId: string | null; wireId: string | null; pointIndex: number | null; x: number; y: number } | null>(null);
@@ -356,6 +426,28 @@ export const CircuitCanvas: React.FC<Props> = ({
       });
     }
   }, [mode, getSVGPoint, onSelectComponent, selectedIds, pushHistory]);
+
+  const handleLabelMouseDown = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
+    e.stopPropagation();
+    if (mode === 'select') {
+      const point = getSVGPoint(e.clientX, e.clientY);
+      pushHistory();
+
+      const currentOffset = comp.labelOffset || { x: 0, y: 0 };
+      const isPointLike = comp.type === 'junction' || comp.type === 'terminal_positive' || comp.type === 'terminal_negative';
+      const defaultY = isPointLike ? -12 : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20);
+      const currentLabelX = comp.x + currentOffset.x;
+      const currentLabelY = comp.y + defaultY + currentOffset.y;
+
+      setDraggingLabel({
+        id: comp.id,
+        offsetX: point.x - currentLabelX,
+        offsetY: point.y - currentLabelY,
+        startX: currentLabelX,
+        startY: currentLabelY,
+      });
+    }
+  }, [mode, getSVGPoint, pushHistory]);
 
   const handleComponentDblClick = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
     e.stopPropagation();
@@ -437,6 +529,8 @@ export const CircuitCanvas: React.FC<Props> = ({
         setNodeContextMenu(null);
         setWireDrawing(false);
         setDraggingWirePoint(null);
+        setDraggingCompNode(null);
+        setDraggingLabel(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -467,8 +561,25 @@ export const CircuitCanvas: React.FC<Props> = ({
 
   const wirePreviewEnd = useMemo(() => {
     if (!drawingWire || drawingWire.length === 0) return mousePos;
+    let end = mousePos;
+
+    // Orthogonal snap logic when drawing
+    const lastPoint = drawingWire[drawingWire.length - 1];
+    if (lastPoint && !snapTarget) {
+      const dx = Math.abs(end.x - lastPoint.x);
+      const dy = Math.abs(end.y - lastPoint.y);
+      // If slope is near horizontal
+      if (dy < 25 && dx > 25) {
+        end = { x: end.x, y: lastPoint.y };
+      }
+      // If slope is near vertical
+      else if (dx < 25 && dy > 25) {
+        end = { x: lastPoint.x, y: end.y };
+      }
+    }
+
     if (snapTarget) return snapTarget.point;
-    return mousePos;
+    return end;
   }, [drawingWire, mousePos, snapTarget]);
 
   const wirePreviewPoints = useMemo(() => {
@@ -573,7 +684,16 @@ export const CircuitCanvas: React.FC<Props> = ({
                         cx={p.x} cy={p.y} r={isEndpointHovered ? 8 : 6}
                         fill="transparent"
                         style={{ cursor: 'crosshair' }}
-                        onMouseDown={(e) => handleNodeMouseDown(e, { x: p.x, y: p.y })}
+                        onMouseDown={(e) => {
+                          if (e.button === 0) {
+                            if (mode === 'wire' || e.altKey) {
+                              onStartWire({ x: p.x, y: p.y });
+                              setWireDrawing(true);
+                            } else if (mode === 'select') {
+                              handleWirePointMouseDown(e, wire.id, i); // Handle dragging of wire endpoint directly
+                            }
+                          }
+                        }}
                         onContextMenu={(e) => handleNodeContextMenu(e, { x: p.x, y: p.y }, null, wire.id, i)}
                       />
                     </g>
@@ -582,6 +702,30 @@ export const CircuitCanvas: React.FC<Props> = ({
               </g>
             );
           })}
+
+          {/* Alignment Guides */}
+          {alignmentGuides.x !== null && (
+            <line
+              x1={alignmentGuides.x} y1={-10000}
+              x2={alignmentGuides.x} y2={10000}
+              stroke="hsl(213, 70%, 45%)"
+              strokeWidth={1}
+              strokeDasharray="5 5"
+              opacity={0.6}
+              style={{ pointerEvents: 'none' }}
+            />
+          )}
+          {alignmentGuides.y !== null && (
+            <line
+              x1={-10000} y1={alignmentGuides.y}
+              x2={10000} y2={alignmentGuides.y}
+              stroke="hsl(213, 70%, 45%)"
+              strokeWidth={1}
+              strokeDasharray="5 5"
+              opacity={0.6}
+              style={{ pointerEvents: 'none' }}
+            />
+          )}
 
           {/* + button on clicked wire */}
           {wireClickedOnWire && (
@@ -666,14 +810,15 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {/* Label - show for junctions always, for other components only when showLabels is on */}
                   {!isTerminal && (isPointLike || showLabels) && (
                     <text
-                      x={0}
-                      y={isPointLike ? -12 : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)}
+                      x={comp.labelOffset?.x || 0}
+                      y={(isPointLike ? -12 : (comp.rotation === 90 || comp.rotation === 270 ? 25 : -20)) + (comp.labelOffset?.y || 0)}
                       fontSize={isPointLike ? 13 : 11}
                       fontFamily="'JetBrains Mono', monospace"
                       fontWeight={isPointLike ? 700 : 500}
                       fill={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 25%, 35%)'}
                       textAnchor="middle"
-                      style={{ pointerEvents: 'none', userSelect: 'none' }}
+                      style={{ pointerEvents: 'auto', userSelect: 'none', cursor: 'move' }}
+                      onMouseDown={(e) => handleLabelMouseDown(e, comp)}
                     >
                       {comp.label}
                     </text>
@@ -692,8 +837,20 @@ export const CircuitCanvas: React.FC<Props> = ({
                       r={isHovered ? 7 : 4}
                       fill={isHovered ? 'hsl(var(--component-selected))' : 'hsl(var(--node-color))'}
                       opacity={isHovered ? 0.9 : 0.5}
-                      style={{ cursor: 'crosshair', transition: 'r 0.15s, opacity 0.15s' }}
-                      onMouseDown={(e) => handleNodeMouseDown(e, cp)}
+                      style={{ cursor: 'move', transition: 'r 0.15s, opacity 0.15s' }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (e.button === 0) {
+                          if (mode === 'wire' || e.altKey) {
+                            onStartWire(cp);
+                            setWireDrawing(true);
+                          } else if (mode === 'select') {
+                            pushHistory();
+                            setDraggingCompNode({ compId: comp.id, oldPoint: cp });
+                          }
+                        }
+                      }}
                       onContextMenu={(e) => handleNodeContextMenu(e, cp, comp.id)}
                     />
                   );
@@ -706,8 +863,20 @@ export const CircuitCanvas: React.FC<Props> = ({
                     cy={comp.y}
                     r={hoveredNode?.compId === comp.id ? 7 : 4}
                     fill="transparent"
-                    style={{ cursor: 'crosshair' }}
-                    onMouseDown={(e) => handleNodeMouseDown(e, { x: comp.x, y: comp.y })}
+                    style={{ cursor: 'move' }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (e.button === 0) {
+                        if (mode === 'wire' || e.altKey) {
+                          onStartWire({ x: comp.x, y: comp.y });
+                          setWireDrawing(true);
+                        } else if (mode === 'select') {
+                          pushHistory();
+                          setDraggingCompNode({ compId: comp.id, oldPoint: { x: comp.x, y: comp.y } });
+                        }
+                      }
+                    }}
                     onContextMenu={(e) => handleNodeContextMenu(e, { x: comp.x, y: comp.y }, comp.id)}
                   />
                 )}

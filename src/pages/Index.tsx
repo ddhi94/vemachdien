@@ -233,6 +233,7 @@ const Index = () => {
               onSelectComponent={editor.selectComponent}
               onSelectMany={editor.selectMany}
               onMoveComponent={editor.moveComponent}
+              onMoveComponentNode={editor.moveComponentNode}
               onMoveSelected={editor.moveSelected}
               onRotateComponent={editor.rotateComponent}
               onToggleSwitch={editor.toggleSwitch}
@@ -249,6 +250,7 @@ const Index = () => {
               findNearestConnectionPoint={editor.findNearestConnectionPoint}
               pushHistory={editor.pushHistory}
               setComponentLabel={editor.setComponentLabel}
+              moveLabel={editor.moveLabel}
               mode={mode}
               hideNodes={hideNodes}
               showLabels={showLabels}

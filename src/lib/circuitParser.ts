@@ -16,6 +16,7 @@ function identifyComponent(token: string): { type: ComponentType; label: string 
   const lower = token.toLowerCase();
 
   if (lower.startsWith('rb')) return { type: 'variable_resistor', label: token };
+  if (lower.startsWith('rq')) return { type: 'photoresistor', label: token };
   if (lower.startsWith('kd')) return { type: 'switch_closed', label: token };
   if (lower.startsWith('km')) return { type: 'switch_open', label: token };
   if (lower.startsWith('led')) return { type: 'led', label: token };
@@ -27,6 +28,9 @@ function identifyComponent(token: string): { type: ComponentType; label: string 
   if (lower === 'a' || lower.startsWith('a')) return { type: 'ammeter', label: token };
   if (lower === 'v' || lower.startsWith('v')) return { type: 'voltmeter', label: token };
   if (lower.startsWith('d')) return { type: 'diode', label: token };
+  if (lower === 'm' || lower.startsWith('m')) return { type: 'motor', label: token };
+  if (lower === 'g' || lower.startsWith('g')) return { type: 'generator', label: token };
+  if (lower.startsWith('ba')) return { type: 'transformer', label: token };
 
   return { type: 'resistor', label: token };
 }

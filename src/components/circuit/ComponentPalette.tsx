@@ -14,6 +14,7 @@ const CATEGORIES: { key: string; label: string }[] = [
   { key: 'meter', label: 'Dụng cụ đo' },
   { key: 'other', label: 'Khác' },
   { key: 'point', label: 'Điểm nối' },
+  { key: 'mechanic', label: 'Cơ học' },
 ];
 
 export const ComponentPalette: React.FC<Props> = ({ onDragStart }) => {
@@ -30,13 +31,13 @@ export const ComponentPalette: React.FC<Props> = ({ onDragStart }) => {
           Ký hiệu điện
         </h2>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto py-1">
         {CATEGORIES.map(cat => {
           const items = PALETTE_ITEMS.filter(p => p.category === cat.key);
           if (items.length === 0) return null;
           const isCollapsed = collapsed[cat.key];
-          
+
           return (
             <div key={cat.key}>
               <button
@@ -47,7 +48,7 @@ export const ComponentPalette: React.FC<Props> = ({ onDragStart }) => {
                 {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                 {cat.label}
               </button>
-              
+
               {!isCollapsed && items.map((item, idx) => (
                 <div
                   key={`${item.type}_${item.shortLabel}_${idx}`}
