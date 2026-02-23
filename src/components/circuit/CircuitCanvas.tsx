@@ -686,15 +686,21 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleJunctionLabelSubmit = useCallback((label: string) => {
     if (junctionLabelInput && label.trim()) {
       if (junctionLabelInput.compId) {
-        // Renaming an existing junction
-        setComponentLabel(junctionLabelInput.compId, label.trim().toUpperCase());
+        const comp = components.find(c => c.id === junctionLabelInput.compId);
+        if (comp && comp.type === 'junction') {
+          // Renaming an existing junction
+          setComponentLabel(junctionLabelInput.compId, label.trim().toUpperCase());
+        } else {
+          // Renaming other components
+          setComponentLabel(junctionLabelInput.compId, label.trim());
+        }
       } else {
         // Adding a new junction on a wire
         onAddJunctionOnWire(junctionLabelInput.wireId, junctionLabelInput.point, label.trim().toUpperCase());
       }
     }
     setJunctionLabelInput(null);
-  }, [junctionLabelInput, onAddJunctionOnWire, setComponentLabel]);
+  }, [junctionLabelInput, onAddJunctionOnWire, setComponentLabel, components]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -957,9 +963,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                   style={{ cursor: mode === 'select' ? 'move' : 'default' }}
                   onMouseDown={(e) => handleComponentMouseDown(e, comp)}
                   onContextMenu={(e) => {
-                    if (comp.type === 'mech_inclined_plane') {
-                      handleNodeContextMenu(e, { x: comp.x, y: comp.y }, comp.id);
-                    }
+                    handleNodeContextMenu(e, { x: comp.x, y: comp.y }, comp.id);
                   }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
@@ -1348,11 +1352,13 @@ export const CircuitCanvas: React.FC<Props> = ({
 
           {(() => {
             const comp = components.find(c => c.id === nodeContextMenu.compId);
+            let specificItems = null;
+
             if (comp?.type === 'mech_inclined_plane') {
               const params = comp.value ? comp.value.split(',').map(s => s.trim()) : ['30', '1'];
               const currentAngle = params[0] || '30';
               const currentScale = params[1] || '1';
-              return (
+              specificItems = (
                 <>
                   <button
                     className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
@@ -1390,6 +1396,7 @@ export const CircuitCanvas: React.FC<Props> = ({
 
             return (
               <>
+                {specificItems}
                 {nodeContextMenu.compId && comp?.type === 'junction' && (
                   <button
                     className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive"
@@ -1406,22 +1413,24 @@ export const CircuitCanvas: React.FC<Props> = ({
                     Xóa điểm
                   </button>
                 )}
-                <button
-                  className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setJunctionLabelInput({
-                      wireId: nodeContextMenu.wireId || '',
-                      compId: nodeContextMenu.compId,
-                      point: nodeContextMenu.point,
-                      x: nodeContextMenu.x,
-                      y: nodeContextMenu.y,
-                    });
-                    setNodeContextMenu(null);
-                  }}
-                >
-                  Đặt tên điểm
-                </button>
+                {nodeContextMenu.compId && (
+                  <button
+                    className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setJunctionLabelInput({
+                        wireId: nodeContextMenu.wireId || '',
+                        compId: nodeContextMenu.compId,
+                        point: nodeContextMenu.point,
+                        x: nodeContextMenu.x,
+                        y: nodeContextMenu.y,
+                      });
+                      setNodeContextMenu(null);
+                    }}
+                  >
+                    {comp?.type === 'junction' ? 'Đặt tên điểm' : 'Đổi tên linh kiện'}
+                  </button>
+                )}
               </>
             );
           })()}
