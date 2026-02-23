@@ -97,7 +97,10 @@ function tokenize(input: string): string[] {
       while (i < input.length) {
         const char = input[i];
         if (char === '(') parenLevel++;
-        if (char === ')') parenLevel--;
+        else if (char === ')') {
+          if (parenLevel === 0) break;
+          parenLevel--;
+        }
 
         if (parenLevel === 0 && (char === '/' || char === ' ' || (char === 'n' && input[i + 1]?.toLowerCase() === 't'))) {
           break;

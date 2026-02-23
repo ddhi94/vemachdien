@@ -97,6 +97,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'bell', label: 'Chuông điện', shortLabel: 'Ch', category: 'other' },
   { type: 'diode', label: 'Điốt', shortLabel: 'D', category: 'other' },
   { type: 'led', label: 'Đèn LED', shortLabel: 'LED', category: 'other' },
+  { type: 'wire_jumper', label: 'Dây nối', shortLabel: 'dn', category: 'other' },
   { type: 'junction', label: 'Điểm A', shortLabel: 'A', category: 'point' },
   { type: 'junction', label: 'Điểm B', shortLabel: 'B', category: 'point' },
   { type: 'junction', label: 'Điểm C', shortLabel: 'C', category: 'point' },
