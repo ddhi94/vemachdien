@@ -97,6 +97,8 @@ export const renderSymbolOnCanvas = (
 
   const scaleVal = parseFloat(val2);
   const scale = (type === 'mech_vector' || type === 'mech_trajectory' || type === 'mech_pulley_fixed') ? 1 : (val2 && !isNaN(scaleVal) ? scaleVal : 1);
+  const isRev = value?.includes('rev') || value?.includes('reverse');
+  const flipStr = isRev ? "scale(-1, 1)" : undefined;
   const sw = originalSw / scale;
 
   const symbolContent = (() => {
@@ -151,27 +153,31 @@ export const renderSymbolOnCanvas = (
       case 'battery_single':
         return (
           <g>
-            <line x1={-hw} y1={0} x2={-4} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={-4} y1={-12} x2={-4} y2={12} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={4} y1={-7} x2={4} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
-            <line x1={4} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <text x={-6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="end">+</text>
-            <text x={6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="start">−</text>
+            <g transform={flipStr}>
+              <line x1={-hw} y1={0} x2={-4} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={-4} y1={-12} x2={-4} y2={12} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={4} y1={-7} x2={4} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
+              <line x1={4} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            </g>
+            <text x={isRev ? 6 : -6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor={isRev ? "start" : "end"}>+</text>
+            <text x={isRev ? -6 : 6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor={isRev ? "end" : "start"}>−</text>
           </g>
         );
 
       case 'battery':
         return (
           <g>
-            <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={-12} y1={-12} x2={-12} y2={12} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={-4} y1={-7} x2={-4} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
-            <line x1={-4} y1={0} x2={4} y2={0} stroke={strokeColor} strokeWidth={1} strokeDasharray="2 2" />
-            <line x1={4} y1={-12} x2={4} y2={12} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={12} y1={-7} x2={12} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
-            <line x1={12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <text x={-14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="end">+</text>
-            <text x={14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="start">−</text>
+            <g transform={flipStr}>
+              <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={-12} y1={-12} x2={-12} y2={12} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={-4} y1={-7} x2={-4} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
+              <line x1={-4} y1={0} x2={4} y2={0} stroke={strokeColor} strokeWidth={1} strokeDasharray="2 2" />
+              <line x1={4} y1={-12} x2={4} y2={12} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={12} y1={-7} x2={12} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
+              <line x1={12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            </g>
+            <text x={isRev ? 14 : -14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor={isRev ? "start" : "end"}>+</text>
+            <text x={isRev ? -14 : 14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor={isRev ? "end" : "start"}>−</text>
           </g>
         );
 
@@ -201,11 +207,13 @@ export const renderSymbolOnCanvas = (
       case 'switch_open':
         return (
           <g>
-            <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <circle cx={-12} cy={0} r={2.5} fill={strokeColor} />
-            <line x1={-12} y1={0} x2={12} y2={-12} stroke={strokeColor} strokeWidth={sw} />
-            <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
-            <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <g transform={flipStr}>
+              <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <circle cx={-12} cy={0} r={2.5} fill={strokeColor} />
+              <line x1={-12} y1={0} x2={12} y2={-12} stroke={strokeColor} strokeWidth={sw} />
+              <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
+              <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            </g>
             <text x={0} y={-15} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">K</text>
           </g>
         );
@@ -213,11 +221,13 @@ export const renderSymbolOnCanvas = (
       case 'switch_closed':
         return (
           <g>
-            <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <circle cx={-12} cy={0} r={2.5} fill={strokeColor} />
-            <line x1={-12} y1={0} x2={15} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
-            <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <g transform={flipStr}>
+              <line x1={-hw} y1={0} x2={-12} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <circle cx={-12} cy={0} r={2.5} fill={strokeColor} />
+              <line x1={-12} y1={0} x2={15} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
+              <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            </g>
             <text x={0} y={-10} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">K</text>
           </g>
         );
@@ -239,8 +249,8 @@ export const renderSymbolOnCanvas = (
             <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
             <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
             <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">A</text>
-            <text x={-20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
-            <text x={20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+            <text x={isRev ? 20 : -20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+            <text x={isRev ? -20 : 20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
             <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
           </g>
         );
@@ -251,8 +261,8 @@ export const renderSymbolOnCanvas = (
             <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
             <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
             <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">V</text>
-            <text x={-20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
-            <text x={20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+            <text x={isRev ? 20 : -20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+            <text x={isRev ? -20 : 20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
             <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
           </g>
         );
@@ -280,24 +290,28 @@ export const renderSymbolOnCanvas = (
       case 'diode':
         return (
           <g>
-            <line x1={-hw} y1={0} x2={-8} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <polygon points="-8,-10 -8,10 8,0" fill="none" stroke={strokeColor} strokeWidth={sw} />
-            <line x1={8} y1={-10} x2={8} y2={10} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={8} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <g transform={flipStr}>
+              <line x1={-hw} y1={0} x2={-8} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <polygon points="-8,-10 -8,10 8,0" fill="none" stroke={strokeColor} strokeWidth={sw} />
+              <line x1={8} y1={-10} x2={8} y2={10} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={8} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            </g>
           </g>
         );
 
       case 'led':
         return (
           <g>
-            <line x1={-hw} y1={0} x2={-8} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <polygon points="-8,-10 -8,10 8,0" fill="none" stroke={strokeColor} strokeWidth={sw} />
-            <line x1={8} y1={-10} x2={8} y2={10} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={8} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-            <line x1={2} y1={-14} x2={8} y2={-20} stroke={strokeColor} strokeWidth={1.5} />
-            <polygon points="8,-20 4,-18 6,-16" fill={strokeColor} />
-            <line x1={7} y1={-12} x2={13} y2={-18} stroke={strokeColor} strokeWidth={1.5} />
-            <polygon points="13,-18 9,-16 11,-14" fill={strokeColor} />
+            <g transform={flipStr}>
+              <line x1={-hw} y1={0} x2={-8} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <polygon points="-8,-10 -8,10 8,0" fill="none" stroke={strokeColor} strokeWidth={sw} />
+              <line x1={8} y1={-10} x2={8} y2={10} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={8} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+              <line x1={2} y1={-14} x2={8} y2={-20} stroke={strokeColor} strokeWidth={1.5} />
+              <polygon points="8,-20 4,-18 6,-16" fill={strokeColor} />
+              <line x1={7} y1={-12} x2={13} y2={-18} stroke={strokeColor} strokeWidth={1.5} />
+              <polygon points="13,-18 9,-16 11,-14" fill={strokeColor} />
+            </g>
           </g>
         );
 

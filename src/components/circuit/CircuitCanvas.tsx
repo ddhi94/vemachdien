@@ -1353,6 +1353,7 @@ export const CircuitCanvas: React.FC<Props> = ({
           {(() => {
             const comp = components.find(c => c.id === nodeContextMenu.compId);
             let specificItems = null;
+            let reversibleItems = null;
 
             if (comp?.type === 'mech_inclined_plane') {
               const params = comp.value ? comp.value.split(',').map(s => s.trim()) : ['30', '1'];
@@ -1394,9 +1395,34 @@ export const CircuitCanvas: React.FC<Props> = ({
               );
             }
 
+            const isReversible = ['switch_open', 'switch_closed', 'ammeter', 'voltmeter', 'battery_single', 'battery', 'diode', 'led', 'motor', 'generator'].includes(comp?.type || '');
+            if (isReversible && comp) {
+              const hasRev = comp.value?.includes('rev') || comp.value?.includes('reverse');
+              reversibleItems = (
+                <button
+                  className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap text-blue-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const params = comp.value ? comp.value.split(',').map(s => s.trim()) : [];
+                    let newParams;
+                    if (hasRev) {
+                      newParams = params.filter(p => !['rev', 'reverse'].includes(p));
+                    } else {
+                      newParams = [...params, 'rev'];
+                    }
+                    updateComponentValue(comp.id, newParams.join(', '));
+                    setNodeContextMenu(null);
+                  }}
+                >
+                  Đảo chiều ({hasRev ? "Âm" : "Dương"})
+                </button>
+              );
+            }
+
             return (
               <>
                 {specificItems}
+                {reversibleItems}
                 {nodeContextMenu.compId && comp?.type === 'junction' && (
                   <button
                     className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive"
