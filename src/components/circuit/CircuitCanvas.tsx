@@ -86,7 +86,7 @@ export const CircuitCanvas: React.FC<Props> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number; isGroup: boolean } | null>(null);
-  const [resizing, setResizing] = useState<{ id: string; type: 'scale' | 'length' | 'angle'; startX: number; startY: number; initialValue: string; handle: string } | null>(null);
+  const [resizing, setResizing] = useState<{ id: string; type: 'scale' | 'length' | 'angle' | 'string_end'; startX: number; startY: number; initialValue: string; handle: string } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [rawMousePos, setRawMousePos] = useState<Point>({ x: 0, y: 0 });
@@ -274,6 +274,72 @@ export const CircuitCanvas: React.FC<Props> = ({
           const delta = resizing.handle === 'end' && cType.includes('pendulum') ? dy : dx;
           const newLen = Math.max(20, initialLen + delta);
           params[0] = Math.round(newLen).toString();
+        }
+        updateComponentValue(resizing.id, params.join(', '));
+      } else if (resizing.type === 'string_end') {
+        if (!comp) return;
+        let localX = point.x - comp.x;
+        let localY = point.y - comp.y;
+        if (comp.rotation) {
+          const rad = (-comp.rotation * Math.PI) / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          const nx = localX * cos - localY * sin;
+          const ny = localX * sin + localY * cos;
+          localX = nx;
+          localY = ny;
+        }
+
+        while (params.length < 6) params.push("");
+
+        const safeSet = (index: number, val: string) => {
+          for (let i = 0; i < index; i++) {
+            if (!params[i] || params[i].trim() === '') {
+              if (i === 0) params[i] = "25";
+              if (i === 1) params[i] = params[0] || "25";
+              if (i === 2 && cType === 'mech_pulley_movable') params[i] = "22";
+              if (i >= 2 && i < 6 && cType !== 'mech_pulley_movable') params[i] = "0";
+              if (i >= 3 && i < 6 && cType === 'mech_pulley_movable') params[i] = "0";
+            }
+          }
+          params[index] = val;
+        };
+
+        if (resizing.handle === 'fixed_left') {
+          const relX = localX + 22;
+          const relY = localY;
+          const len = Math.max(5, Math.hypot(relX, relY));
+          const ang = Math.atan2(-relX, relY) * 180 / Math.PI;
+          safeSet(0, Math.round(len).toString());
+          safeSet(2, Math.round(ang).toString());
+        } else if (resizing.handle === 'fixed_right') {
+          const relX = localX - 22;
+          const relY = localY;
+          const len = Math.max(5, Math.hypot(relX, relY));
+          const ang = Math.atan2(relX, relY) * 180 / Math.PI;
+          safeSet(1, Math.round(len).toString());
+          safeSet(3, Math.round(ang).toString());
+        } else if (resizing.handle === 'movable_left') {
+          const relX = localX + 22;
+          const relY = localY;
+          const len = Math.max(5, Math.hypot(relX, relY));
+          const ang = Math.atan2(-relX, -relY) * 180 / Math.PI;
+          safeSet(0, Math.round(len).toString());
+          safeSet(3, Math.round(ang).toString());
+        } else if (resizing.handle === 'movable_right') {
+          const relX = localX - 22;
+          const relY = localY;
+          const len = Math.max(5, Math.hypot(relX, relY));
+          const ang = Math.atan2(relX, -relY) * 180 / Math.PI;
+          safeSet(1, Math.round(len).toString());
+          safeSet(4, Math.round(ang).toString());
+        } else if (resizing.handle === 'movable_bottom') {
+          const relX = localX;
+          const relY = localY;
+          const len = Math.max(5, Math.hypot(relX, relY));
+          const ang = Math.atan2(relX, relY) * 180 / Math.PI;
+          safeSet(2, Math.round(len).toString());
+          safeSet(5, Math.round(ang).toString());
         }
         updateComponentValue(resizing.id, params.join(', '));
       } else if (resizing.type === 'scale') {
@@ -515,7 +581,7 @@ export const CircuitCanvas: React.FC<Props> = ({
     }
   }, [mode, getSVGPoint, onSelectComponent, selectedIds]);
 
-  const handleResizeHandleMouseDown = useCallback((e: React.MouseEvent, comp: CircuitComponent, type: 'scale' | 'length' | 'angle', handleId: string) => {
+  const handleResizeHandleMouseDown = useCallback((e: React.MouseEvent, comp: CircuitComponent, type: 'scale' | 'length' | 'angle' | 'string_end', handleId: string) => {
     e.stopPropagation();
     const point = getSVGPoint(e.clientX, e.clientY);
     pushHistory(); // Add pushHistory here
@@ -1028,31 +1094,64 @@ export const CircuitCanvas: React.FC<Props> = ({
                         />
                       )}
 
-                      {/* Handles for Fixed Pulley (Left & Right Strings) */}
-                      {comp.type === 'mech_pulley_fixed' && (
-                        <g>
-                          <circle
-                            cx={-22}
-                            cy={comp.value ? parseFloat(comp.value.split(',')[0] || '25') : 25}
-                            r={6}
-                            fill="hsl(var(--component-selected))"
-                            stroke="white"
-                            strokeWidth={2}
-                            style={{ cursor: 'ns-resize' }}
-                            onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'length', 'length_left')}
-                          />
-                          <circle
-                            cx={22}
-                            cy={comp.value && comp.value.split(',').length > 1 ? parseFloat(comp.value.split(',')[1]) : (comp.value ? parseFloat(comp.value.split(',')[0] || '25') : 25)}
-                            r={6}
-                            fill="hsl(var(--component-selected))"
-                            stroke="white"
-                            strokeWidth={2}
-                            style={{ cursor: 'ns-resize' }}
-                            onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'length', 'length_right')}
-                          />
-                        </g>
-                      )}
+                      {/* Handles for Pulleys (Strings with Angle capabilities) */}
+                      {(() => {
+                        if (comp.type === 'mech_pulley_fixed') {
+                          const params = comp.value ? comp.value.split(',').map(s => s.trim()) : [];
+                          const lenL = parseFloat(params[0]) || 25;
+                          const lenR = parseFloat(params[1]) || lenL;
+                          const argL = parseFloat(params[2]) || 0;
+                          const argR = parseFloat(params[3]) || 0;
+                          const radL = argL * Math.PI / 180;
+                          const radR = argR * Math.PI / 180;
+                          return (
+                            <g>
+                              <circle
+                                cx={-22 - lenL * Math.sin(radL)} cy={lenL * Math.cos(radL)}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'fixed_left')}
+                              />
+                              <circle
+                                cx={22 + lenR * Math.sin(radR)} cy={lenR * Math.cos(radR)}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'fixed_right')}
+                              />
+                            </g>
+                          );
+                        }
+                        if (comp.type === 'mech_pulley_movable') {
+                          const params = comp.value ? comp.value.split(',').map(s => s.trim()) : [];
+                          const lenL = parseFloat(params[0]) || 25;
+                          const lenR = parseFloat(params[1]) || lenL;
+                          const lenB = parseFloat(params[2]) || 22;
+                          const argL = parseFloat(params[3]) || 0;
+                          const argR = parseFloat(params[4]) || 0;
+                          const argB = parseFloat(params[5]) || 0;
+                          const radL = argL * Math.PI / 180;
+                          const radR = argR * Math.PI / 180;
+                          const radB = argB * Math.PI / 180;
+                          return (
+                            <g>
+                              <circle
+                                cx={-22 - lenL * Math.sin(radL)} cy={-lenL * Math.cos(radL)}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'movable_left')}
+                              />
+                              <circle
+                                cx={22 + lenR * Math.sin(radR)} cy={-lenR * Math.cos(radR)}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'movable_right')}
+                              />
+                              <circle
+                                cx={lenB * Math.sin(radB)} cy={lenB * Math.cos(radB)}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'movable_bottom')}
+                              />
+                            </g>
+                          );
+                        }
+                        return null;
+                      })()}
 
                       {/* Handles for Parabola (Trajectory) */}
                       {comp.type === 'mech_trajectory' && (

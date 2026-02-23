@@ -45,6 +45,9 @@ export const renderSymbolOnCanvas = (
   const val1 = params[0]; // Main value (label, length, etc.)
   const val2 = params[1]; // Secondary value (scale, or vector length, trajectory height)
   const val3 = params[2]; // Tertiary value (flags)
+  const val4 = params[3];
+  const val5 = params[4];
+  const val6 = params[5];
 
   const scaleVal = parseFloat(val2);
   const scale = (type === 'mech_vector' || type === 'mech_trajectory' || type === 'mech_pulley_fixed') ? 1 : (val2 && !isNaN(scaleVal) ? scaleVal : 1);
@@ -354,33 +357,49 @@ export const renderSymbolOnCanvas = (
         );
 
       case 'mech_pulley_fixed':
-        const pulleyFixedLenLeft = val1 ? parseFloat(val1) : 25;
-        const pulleyFixedLenRight = val2 ? parseFloat(val2) : pulleyFixedLenLeft;
-        const pulleyR = 22;
+        const pfLenL = val1 ? parseFloat(val1) : 25;
+        const pfLenR = val2 ? parseFloat(val2) : pfLenL;
+        const pfAngL = val3 ? parseFloat(val3) : 0;
+        const pfAngR = val4 ? parseFloat(val4) : 0;
+        const pR = 22;
+
+        const pfRadL = (pfAngL * Math.PI) / 180;
+        const pfRadR = (pfAngR * Math.PI) / 180;
+
         return (
           <g>
             <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
-            <circle cx={0} cy={0} r={pulleyR} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
+            <circle cx={0} cy={0} r={pR} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
             <circle cx={0} cy={0} r={4} fill={strokeColor} />
-            <path d={`M ${-pulleyR} 0 A ${pulleyR} ${pulleyR} 0 0 1 ${pulleyR} 0`} fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
-            <line x1={-pulleyR} y1={0} x2={-pulleyR} y2={pulleyFixedLenLeft} stroke={strokeColor} strokeWidth={1.5} />
-            <line x1={pulleyR} y1={0} x2={pulleyR} y2={pulleyFixedLenRight} stroke={strokeColor} strokeWidth={1.5} />
-            <path d={`M 0 0 L 0 ${-pulleyR} M -8 ${-pulleyR} L 8 ${-pulleyR} M -4 ${-pulleyR - 4} L -8 ${-pulleyR} M 0 ${-pulleyR - 4} L -4 ${-pulleyR} M 4 ${-pulleyR - 4} L 0 ${-pulleyR} M 8 ${-pulleyR - 4} L 4 ${-pulleyR}`} stroke={strokeColor} strokeWidth={sw} />
+            <path d={`M ${-pR} 0 A ${pR} ${pR} 0 0 1 ${pR} 0`} fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
+            <line x1={-pR} y1={0} x2={-pR - pfLenL * Math.sin(pfRadL)} y2={pfLenL * Math.cos(pfRadL)} stroke={strokeColor} strokeWidth={1.5} />
+            <line x1={pR} y1={0} x2={pR + pfLenR * Math.sin(pfRadR)} y2={pfLenR * Math.cos(pfRadR)} stroke={strokeColor} strokeWidth={1.5} />
+            <path d={`M 0 0 L 0 ${-pR} M -8 ${-pR} L 8 ${-pR} M -4 ${-pR - 4} L -8 ${-pR} M 0 ${-pR - 4} L -4 ${-pR} M 4 ${-pR - 4} L 0 ${-pR} M 8 ${-pR - 4} L 4 ${-pR}`} stroke={strokeColor} strokeWidth={sw} />
           </g>
         );
 
       case 'mech_pulley_movable':
-        const pulleyMovableLen = val1 ? parseFloat(val1) : 25;
+        const pmLenL = val1 ? parseFloat(val1) : 25;
+        const pmLenR = val2 ? parseFloat(val2) : pmLenL;
+        const pmLenB = val3 ? parseFloat(val3) : 22;
+        const pmAngL = val4 ? parseFloat(val4) : 0;
+        const pmAngR = val5 ? parseFloat(val5) : 0;
+        const pmAngB = val6 ? parseFloat(val6) : 0;
         const mPulleyR = 22;
+
+        const pmRadL = (pmAngL * Math.PI) / 180;
+        const pmRadR = (pmAngR * Math.PI) / 180;
+        const pmRadB = (pmAngB * Math.PI) / 180;
+
         return (
           <g>
             <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
             <circle cx={0} cy={0} r={mPulleyR} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
             <circle cx={0} cy={0} r={4} fill={strokeColor} />
             <path d={`M ${-mPulleyR} 0 A ${mPulleyR} ${mPulleyR} 0 0 0 ${mPulleyR} 0`} fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
-            <line x1={-mPulleyR} y1={0} x2={-mPulleyR} y2={-pulleyMovableLen} stroke={strokeColor} strokeWidth={1.5} />
-            <line x1={mPulleyR} y1={0} x2={mPulleyR} y2={-pulleyMovableLen} stroke={strokeColor} strokeWidth={1.5} />
-            <line x1={0} y1={0} x2={0} y2={mPulleyR} stroke={strokeColor} strokeWidth={sw} />
+            <line x1={-mPulleyR} y1={0} x2={-mPulleyR - pmLenL * Math.sin(pmRadL)} y2={-pmLenL * Math.cos(pmRadL)} stroke={strokeColor} strokeWidth={1.5} />
+            <line x1={mPulleyR} y1={0} x2={mPulleyR + pmLenR * Math.sin(pmRadR)} y2={-pmLenR * Math.cos(pmRadR)} stroke={strokeColor} strokeWidth={1.5} />
+            <line x1={0} y1={0} x2={pmLenB * Math.sin(pmRadB)} y2={pmLenB * Math.cos(pmRadB)} stroke={strokeColor} strokeWidth={1.5} />
           </g>
         );
 
@@ -444,7 +463,7 @@ export const renderSymbolOnCanvas = (
         const vectorLabel = val1 || 'F';
         return (
           <g>
-            <line x1={0} y1={0} x2={vectorLen} y2={0} stroke={strokeColor} strokeWidth={sw + 1} />
+            <line x1={0} y1={0} x2={Math.max(0, vectorLen - 4)} y2={0} stroke={strokeColor} strokeWidth={sw + 1} />
             <polygon points={`${vectorLen},0 ${vectorLen - 8},-4 ${vectorLen - 8},4`} fill={strokeColor} />
             <text x={vectorLen / 2} y={-12} fontSize={14} fontFamily="serif" fontStyle="italic" fill={strokeColor} stroke="none" textAnchor="middle">
               {vectorLabel}
