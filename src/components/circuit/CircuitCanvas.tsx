@@ -1440,22 +1440,36 @@ export const CircuitCanvas: React.FC<Props> = ({
                   </button>
                 )}
                 {nodeContextMenu.compId && (
-                  <button
-                    className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setJunctionLabelInput({
-                        wireId: nodeContextMenu.wireId || '',
-                        compId: nodeContextMenu.compId,
-                        point: nodeContextMenu.point,
-                        x: nodeContextMenu.x,
-                        y: nodeContextMenu.y,
-                      });
-                      setNodeContextMenu(null);
-                    }}
-                  >
-                    {comp?.type === 'junction' ? 'Đặt tên điểm' : 'Đổi tên linh kiện'}
-                  </button>
+                  <>
+                    <button
+                      className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setJunctionLabelInput({
+                          wireId: nodeContextMenu.wireId || '',
+                          compId: nodeContextMenu.compId,
+                          point: nodeContextMenu.point,
+                          x: nodeContextMenu.x,
+                          y: nodeContextMenu.y,
+                        });
+                        setNodeContextMenu(null);
+                      }}
+                    >
+                      {comp?.type === 'junction' ? 'Đặt tên điểm' : 'Đổi tên linh kiện'}
+                    </button>
+                    {comp?.label && (
+                      <button
+                        className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive w-full whitespace-nowrap"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setComponentLabel(nodeContextMenu.compId!, '');
+                          setNodeContextMenu(null);
+                        }}
+                      >
+                        {comp?.type === 'junction' ? 'Xóa tên điểm' : 'Xóa tên linh kiện'}
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             );
