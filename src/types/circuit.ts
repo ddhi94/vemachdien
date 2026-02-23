@@ -39,7 +39,8 @@ export type ComponentType =
   | 'mech_axis_y'    // Trục tọa độ Oy
   | 'mech_line_dashed' // Đường đứt nét
   | 'mech_arc'       // Cung tròn đánh dấu góc
-  | 'mech_trajectory'; // Quỹ đạo ném
+  | 'mech_trajectory'// Quỹ đạo ném
+  | 'mech_lever';    // Đòn bẩy
 
 export interface Point {
   x: number;

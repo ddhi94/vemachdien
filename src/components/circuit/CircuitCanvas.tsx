@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { CircuitComponent, Wire, Point, ComponentType, SNAP_SIZE } from '@/types/circuit';
-import { renderSymbolOnCanvas } from './CircuitSymbolSVG';
+import { renderSymbolOnCanvas, getPulleyKinematics } from './CircuitSymbolSVG';
 
 interface Props {
   components: CircuitComponent[];
@@ -306,40 +306,49 @@ export const CircuitCanvas: React.FC<Props> = ({
         };
 
         if (resizing.handle === 'fixed_left') {
-          const relX = localX + 22;
-          const relY = localY;
-          const len = Math.max(5, Math.hypot(relX, relY));
-          const ang = Math.atan2(-relX, relY) * 180 / Math.PI;
-          safeSet(0, Math.round(len).toString());
+          let R = 22;
+          let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
+          let ang = Math.atan2(-L * localX - R * localY, -R * localX + L * localY) * 180 / Math.PI;
+          safeSet(0, Math.round(L).toString());
           safeSet(2, Math.round(ang).toString());
         } else if (resizing.handle === 'fixed_right') {
-          const relX = localX - 22;
-          const relY = localY;
-          const len = Math.max(5, Math.hypot(relX, relY));
-          const ang = Math.atan2(relX, relY) * 180 / Math.PI;
-          safeSet(1, Math.round(len).toString());
+          let R = 22;
+          let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
+          let ang = Math.atan2(L * localX - R * localY, R * localX + L * localY) * 180 / Math.PI;
+          safeSet(1, Math.round(L).toString());
           safeSet(3, Math.round(ang).toString());
+        } else if (resizing.handle === 'fixed_top') {
+          let L = Math.max(5, Math.hypot(localX, localY));
+          let ang = Math.atan2(localX, -localY) * 180 / Math.PI;
+          safeSet(4, Math.round(L).toString());
+          safeSet(5, Math.round(ang).toString());
         } else if (resizing.handle === 'movable_left') {
-          const relX = localX + 22;
-          const relY = localY;
-          const len = Math.max(5, Math.hypot(relX, relY));
-          const ang = Math.atan2(-relX, -relY) * 180 / Math.PI;
-          safeSet(0, Math.round(len).toString());
+          let R = 22;
+          let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
+          let ang = Math.atan2(-L * localX + R * localY, -R * localX - L * localY) * 180 / Math.PI;
+          safeSet(0, Math.round(L).toString());
           safeSet(3, Math.round(ang).toString());
         } else if (resizing.handle === 'movable_right') {
-          const relX = localX - 22;
-          const relY = localY;
-          const len = Math.max(5, Math.hypot(relX, relY));
-          const ang = Math.atan2(relX, -relY) * 180 / Math.PI;
-          safeSet(1, Math.round(len).toString());
+          let R = 22;
+          let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
+          let ang = Math.atan2(L * localX + R * localY, R * localX - L * localY) * 180 / Math.PI;
+          safeSet(1, Math.round(L).toString());
           safeSet(4, Math.round(ang).toString());
         } else if (resizing.handle === 'movable_bottom') {
-          const relX = localX;
-          const relY = localY;
-          const len = Math.max(5, Math.hypot(relX, relY));
-          const ang = Math.atan2(relX, relY) * 180 / Math.PI;
-          safeSet(2, Math.round(len).toString());
+          let L = Math.max(5, Math.hypot(localX, localY));
+          let ang = Math.atan2(localX, localY) * 180 / Math.PI;
+          safeSet(2, Math.round(L).toString());
           safeSet(5, Math.round(ang).toString());
+        } else if (resizing.handle === 'lever_left') {
+          let l1 = Math.max(10, Math.hypot(localX, localY));
+          let ang = Math.atan2(localY, -localX) * 180 / Math.PI;
+          safeSet(0, Math.round(l1).toString());
+          safeSet(2, Math.round(ang).toString());
+        } else if (resizing.handle === 'lever_right') {
+          let l2 = Math.max(10, Math.hypot(localX, localY));
+          let ang = Math.atan2(-localY, localX) * 180 / Math.PI;
+          safeSet(1, Math.round(l2).toString());
+          safeSet(2, Math.round(ang).toString());
         }
         updateComponentValue(resizing.id, params.join(', '));
       } else if (resizing.type === 'scale') {
@@ -956,7 +965,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                     e.stopPropagation();
                     e.preventDefault();
                     const screenPos = getScreenPos({ x: comp.x, y: comp.y });
-                    if (['mech_inclined_plane', 'mech_cart', 'mech_spring', 'mech_pendulum', 'mech_vector', 'mech_axis', 'mech_trajectory'].includes(comp.type)) {
+                    if (['mech_inclined_plane', 'mech_cart', 'mech_spring', 'mech_pendulum', 'mech_vector', 'mech_axis', 'mech_trajectory', 'mech_lever'].includes(comp.type)) {
                       setComponentValueInput({
                         compId: comp.id,
                         initialValue: comp.value || '',
@@ -1098,54 +1107,67 @@ export const CircuitCanvas: React.FC<Props> = ({
                       {(() => {
                         if (comp.type === 'mech_pulley_fixed') {
                           const params = comp.value ? comp.value.split(',').map(s => s.trim()) : [];
-                          const lenL = parseFloat(params[0]) || 25;
-                          const lenR = parseFloat(params[1]) || lenL;
-                          const argL = parseFloat(params[2]) || 0;
-                          const argR = parseFloat(params[3]) || 0;
-                          const radL = argL * Math.PI / 180;
-                          const radR = argR * Math.PI / 180;
+                          const { pL, pR, pM: pT } = getPulleyKinematics(params, false);
                           return (
                             <g>
                               <circle
-                                cx={-22 - lenL * Math.sin(radL)} cy={lenL * Math.cos(radL)}
+                                cx={pL.x} cy={pL.y}
                                 r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
                                 onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'fixed_left')}
                               />
                               <circle
-                                cx={22 + lenR * Math.sin(radR)} cy={lenR * Math.cos(radR)}
+                                cx={pR.x} cy={pR.y}
                                 r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
                                 onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'fixed_right')}
+                              />
+                              <circle
+                                cx={pT.x} cy={pT.y}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'fixed_top')}
                               />
                             </g>
                           );
                         }
                         if (comp.type === 'mech_pulley_movable') {
                           const params = comp.value ? comp.value.split(',').map(s => s.trim()) : [];
-                          const lenL = parseFloat(params[0]) || 25;
-                          const lenR = parseFloat(params[1]) || lenL;
-                          const lenB = parseFloat(params[2]) || 22;
-                          const argL = parseFloat(params[3]) || 0;
-                          const argR = parseFloat(params[4]) || 0;
-                          const argB = parseFloat(params[5]) || 0;
-                          const radL = argL * Math.PI / 180;
-                          const radR = argR * Math.PI / 180;
-                          const radB = argB * Math.PI / 180;
+                          const { pL, pR, pM: pB } = getPulleyKinematics(params, true);
                           return (
                             <g>
                               <circle
-                                cx={-22 - lenL * Math.sin(radL)} cy={-lenL * Math.cos(radL)}
+                                cx={pL.x} cy={pL.y}
                                 r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
                                 onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'movable_left')}
                               />
                               <circle
-                                cx={22 + lenR * Math.sin(radR)} cy={-lenR * Math.cos(radR)}
+                                cx={pR.x} cy={pR.y}
                                 r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
                                 onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'movable_right')}
                               />
                               <circle
-                                cx={lenB * Math.sin(radB)} cy={lenB * Math.cos(radB)}
+                                cx={pB.x} cy={pB.y}
                                 r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
                                 onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'movable_bottom')}
+                              />
+                            </g>
+                          );
+                        }
+                        if (comp.type === 'mech_lever') {
+                          const params = comp.value ? comp.value.split(',').map(s => s.trim()) : [];
+                          const l1 = parseFloat(params[0]) || 50;
+                          const l2 = parseFloat(params[1]) || 50;
+                          const ang = parseFloat(params[2]) || 0;
+                          const rad = (ang * Math.PI) / 180;
+                          return (
+                            <g>
+                              <circle
+                                cx={-l1 * Math.cos(rad)} cy={l1 * Math.sin(rad)}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'lever_left')}
+                              />
+                              <circle
+                                cx={l2 * Math.cos(rad)} cy={-l2 * Math.sin(rad)}
+                                r={6} fill="hsl(var(--component-selected))" stroke="white" strokeWidth={2} style={{ cursor: 'crosshair' }}
+                                onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'string_end', 'lever_right')}
                               />
                             </g>
                           );

@@ -38,6 +38,7 @@ function identifyComponent(token: string): { type: ComponentType; label: string;
   if (lower.startsWith('dóng') || lower.startsWith('dong') || lower.startsWith('dot')) return { type: 'mech_line_dashed', label: token, value };
   if (lower.startsWith('cung')) return { type: 'mech_arc', label: token, value };
   if (lower.startsWith('ném') || lower.startsWith('nem') || lower.startsWith('parabol')) return { type: 'mech_trajectory', label: token, value };
+  if (lower.startsWith('đòn') || lower.startsWith('don') || lower === 'lever') return { type: 'mech_lever', label: token, value };
 
   // Điện học
   if (lower.startsWith('rb')) return { type: 'variable_resistor', label: token, value };
@@ -47,7 +48,8 @@ function identifyComponent(token: string): { type: ComponentType; label: string;
   if (lower.startsWith('led')) return { type: 'led', label: token, value };
   if (lower === 'đ' || lower.startsWith('đ')) return { type: 'bulb', label: token, value };
   if (lower.startsWith('r')) return { type: 'resistor', label: token, value };
-  if (lower.startsWith('u')) return { type: 'battery', label: token, value };
+  if (lower.startsWith('ud') || lower.startsWith('u_doi')) return { type: 'battery', label: token, value };
+  if (lower.startsWith('u')) return { type: 'battery_single', label: token, value };
   if (lower.startsWith('c')) return { type: 'capacitor', label: token, value };
   if (lower.startsWith('l')) return { type: 'inductor', label: token, value };
   if (lower === 'a' || lower.startsWith('a')) return { type: 'ammeter', label: token, value };
@@ -190,6 +192,11 @@ function getComponentWidth(type: ComponentType, value?: string): number {
   else if (type === 'mech_axis') baseWidth = val1 ? parseFloat(val1) : 100;
   else if (type === 'mech_arc' || type === 'mech_line_dashed') baseWidth = val1 ? parseFloat(val1) : 60;
   else if (type === 'mech_trajectory') baseWidth = val1 ? parseFloat(val1) : 120;
+  else if (type === 'mech_lever') {
+    const l1 = val1 ? parseFloat(val1) : 50;
+    const l2 = val2 ? parseFloat(val2) : 50;
+    baseWidth = l1 + l2;
+  }
   else return 80; // Default electrical
 
   return baseWidth * scale;

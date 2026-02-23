@@ -29,6 +29,52 @@ export const CircuitSymbolSVG: React.FC<Props> = ({
   );
 };
 
+// Helper functions for dynamic pulley kinematics
+export const getPulleyKinematics = (params: string[], isMovable: boolean) => {
+  const R = 22;
+  const p0 = parseFloat(params[0]); const lenL = isNaN(p0) ? 25 : p0;
+  const p1 = parseFloat(params[1]); const lenR = isNaN(p1) ? lenL : p1;
+
+  if (isMovable) {
+    const p2 = parseFloat(params[2]); const lenB = isNaN(p2) ? 22 : p2;
+    const p3 = parseFloat(params[3]); const angL = isNaN(p3) ? 0 : p3;
+    const p4 = parseFloat(params[4]); const angR = isNaN(p4) ? 0 : p4;
+    const p5 = parseFloat(params[5]); const angB = isNaN(p5) ? 0 : p5;
+    const radL = (angL * Math.PI) / 180;
+    const radR = (angR * Math.PI) / 180;
+    const radB = (angB * Math.PI) / 180;
+
+    const tL = { x: -R * Math.cos(radL), y: R * Math.sin(radL) };
+    const pL = { x: tL.x - lenL * Math.sin(radL), y: tL.y - lenL * Math.cos(radL) };
+
+    const tR = { x: R * Math.cos(radR), y: R * Math.sin(radR) };
+    const pR = { x: tR.x + lenR * Math.sin(radR), y: tR.y - lenR * Math.cos(radR) };
+
+    const pB = { x: lenB * Math.sin(radB), y: lenB * Math.cos(radB) };
+
+    return { pL, pR, pM: pB, tL, tR };
+  } else {
+    // Fixed Pulley
+    const p2 = parseFloat(params[2]); const angL = isNaN(p2) ? 0 : p2;
+    const p3 = parseFloat(params[3]); const angR = isNaN(p3) ? 0 : p3;
+    const p4 = parseFloat(params[4]); const lenT = isNaN(p4) ? 35 : p4;
+    const p5 = parseFloat(params[5]); const angT = isNaN(p5) ? 0 : p5;
+    const radL = (angL * Math.PI) / 180;
+    const radR = (angR * Math.PI) / 180;
+    const radT = (angT * Math.PI) / 180;
+
+    const tL = { x: -R * Math.cos(radL), y: -R * Math.sin(radL) };
+    const pL = { x: tL.x - lenL * Math.sin(radL), y: tL.y + lenL * Math.cos(radL) };
+
+    const tR = { x: R * Math.cos(radR), y: -R * Math.sin(radR) };
+    const pR = { x: tR.x + lenR * Math.sin(radR), y: tR.y + lenR * Math.cos(radR) };
+
+    const pT = { x: lenT * Math.sin(radT), y: -lenT * Math.cos(radT) };
+
+    return { pL, pR, pM: pT, tL, tR };
+  }
+};
+
 // For rendering on the canvas with transform
 export const renderSymbolOnCanvas = (
   type: ComponentType,
@@ -356,52 +402,43 @@ export const renderSymbolOnCanvas = (
           </g>
         );
 
-      case 'mech_pulley_fixed':
-        const pfLenL = val1 ? parseFloat(val1) : 25;
-        const pfLenR = val2 ? parseFloat(val2) : pfLenL;
-        const pfAngL = val3 ? parseFloat(val3) : 0;
-        const pfAngR = val4 ? parseFloat(val4) : 0;
+      case 'mech_pulley_fixed': {
         const pR = 22;
-
-        const pfRadL = (pfAngL * Math.PI) / 180;
-        const pfRadR = (pfAngR * Math.PI) / 180;
+        const { pL, pR: ptR, pM: pT, tL, tR } = getPulleyKinematics(params, false);
+        const largeArc = (tL.x * tR.y - tL.y * tR.x < 0) ? 1 : 0;
 
         return (
           <g>
             <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
+            {/* Top Hanger String */}
+            <line x1={0} y1={0} x2={pT.x} y2={pT.y} stroke={strokeColor} strokeWidth={sw + 1} />
             <circle cx={0} cy={0} r={pR} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
             <circle cx={0} cy={0} r={4} fill={strokeColor} />
-            <path d={`M ${-pR} 0 A ${pR} ${pR} 0 0 1 ${pR} 0`} fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
-            <line x1={-pR} y1={0} x2={-pR - pfLenL * Math.sin(pfRadL)} y2={pfLenL * Math.cos(pfRadL)} stroke={strokeColor} strokeWidth={1.5} />
-            <line x1={pR} y1={0} x2={pR + pfLenR * Math.sin(pfRadR)} y2={pfLenR * Math.cos(pfRadR)} stroke={strokeColor} strokeWidth={1.5} />
-            <path d={`M 0 0 L 0 ${-pR} M -8 ${-pR} L 8 ${-pR} M -4 ${-pR - 4} L -8 ${-pR} M 0 ${-pR - 4} L -4 ${-pR} M 4 ${-pR - 4} L 0 ${-pR} M 8 ${-pR - 4} L 4 ${-pR}`} stroke={strokeColor} strokeWidth={sw} />
+
+            {/* Wrapped String: Path going from Left Endpoint, to Tangent Left, wrapping over TOP, to Tangent Right, to Right Endpoint */}
+            <path d={`M ${pL.x} ${pL.y} L ${tL.x} ${tL.y} A ${pR} ${pR} 0 ${largeArc} 1 ${tR.x} ${tR.y} L ${ptR.x} ${ptR.y}`} fill="none" stroke={strokeColor} strokeWidth={1.5} />
           </g>
         );
+      }
 
-      case 'mech_pulley_movable':
-        const pmLenL = val1 ? parseFloat(val1) : 25;
-        const pmLenR = val2 ? parseFloat(val2) : pmLenL;
-        const pmLenB = val3 ? parseFloat(val3) : 22;
-        const pmAngL = val4 ? parseFloat(val4) : 0;
-        const pmAngR = val5 ? parseFloat(val5) : 0;
-        const pmAngB = val6 ? parseFloat(val6) : 0;
+      case 'mech_pulley_movable': {
         const mPulleyR = 22;
-
-        const pmRadL = (pmAngL * Math.PI) / 180;
-        const pmRadR = (pmAngR * Math.PI) / 180;
-        const pmRadB = (pmAngB * Math.PI) / 180;
+        const { pL, pR: ptR, pM: pB, tL, tR } = getPulleyKinematics(params, true);
+        const largeArc = (tL.x * tR.y - tL.y * tR.x > 0) ? 1 : 0;
 
         return (
           <g>
             <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
+            {/* Bottom Hook String */}
+            <line x1={0} y1={0} x2={pB.x} y2={pB.y} stroke={strokeColor} strokeWidth={sw + 1} />
             <circle cx={0} cy={0} r={mPulleyR} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
             <circle cx={0} cy={0} r={4} fill={strokeColor} />
-            <path d={`M ${-mPulleyR} 0 A ${mPulleyR} ${mPulleyR} 0 0 0 ${mPulleyR} 0`} fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
-            <line x1={-mPulleyR} y1={0} x2={-mPulleyR - pmLenL * Math.sin(pmRadL)} y2={-pmLenL * Math.cos(pmRadL)} stroke={strokeColor} strokeWidth={1.5} />
-            <line x1={mPulleyR} y1={0} x2={mPulleyR + pmLenR * Math.sin(pmRadR)} y2={-pmLenR * Math.cos(pmRadR)} stroke={strokeColor} strokeWidth={1.5} />
-            <line x1={0} y1={0} x2={pmLenB * Math.sin(pmRadB)} y2={pmLenB * Math.cos(pmRadB)} stroke={strokeColor} strokeWidth={1.5} />
+
+            {/* Wrapped String: Path going from Left Endpoint, to Tangent Left, wrapping UNDER BOTTOM, to Tangent Right, to Right Endpoint */}
+            <path d={`M ${pL.x} ${pL.y} L ${tL.x} ${tL.y} A ${mPulleyR} ${mPulleyR} 0 ${largeArc} 0 ${tR.x} ${tR.y} L ${ptR.x} ${ptR.y}`} fill="none" stroke={strokeColor} strokeWidth={1.5} />
           </g>
         );
+      }
 
       case 'mech_inclined_plane':
         const isHidden = val3 === 'hidden';
