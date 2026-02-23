@@ -54,6 +54,7 @@ function identifyComponent(token: string): { type: ComponentType; label: string;
   if (lower.startsWith('l')) return { type: 'inductor', label: token, value };
   if (lower === 'a' || lower.startsWith('a')) return { type: 'ammeter', label: token, value };
   if (lower === 'v' || (lower.startsWith('v') && lower.length > 1 && !lower.startsWith('v_'))) return { type: 'voltmeter', label: token, value };
+  if (lower.startsWith('dn')) return { type: 'wire_jumper', label: token, value };
   if (lower.startsWith('d')) return { type: 'diode', label: token, value };
   if (lower.startsWith('m') && lower.length > 1) return { type: 'motor', label: token, value };
   if (lower === 'g' || lower.startsWith('g')) return { type: 'generator', label: token, value };

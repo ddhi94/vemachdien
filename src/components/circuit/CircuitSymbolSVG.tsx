@@ -188,6 +188,15 @@ export const renderSymbolOnCanvas = (
           </g>
         );
 
+      case 'wire_jumper':
+        return (
+          <g>
+            <line x1={-hw} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
+            <circle cx={-hw} cy={0} r={3} fill={strokeColor} />
+            <circle cx={hw} cy={0} r={3} fill={strokeColor} />
+          </g>
+        );
+
       case 'terminal_positive':
         return (
           <g>

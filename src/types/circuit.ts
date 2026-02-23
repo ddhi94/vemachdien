@@ -17,6 +17,7 @@ export type ComponentType =
   | 'junction'       // Điểm nối A, B, C, D
   | 'terminal_positive' // Cực dương +
   | 'terminal_negative' // Cực âm −
+  | 'wire_jumper'    // Dây nối mạch
   | 'wire'           // Dây dẫn
   // Ký hiệu điện học nâng cao
   | 'motor'          // Động cơ điện M
