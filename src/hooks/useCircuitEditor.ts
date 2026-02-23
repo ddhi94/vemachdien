@@ -169,6 +169,12 @@ export function useCircuitEditor() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
 
+  // Refs to always hold the latest state for synchronous access in callbacks
+  const componentsRef = useRef<CircuitComponent[]>([]);
+  const wiresRef = useRef<Wire[]>([]);
+  componentsRef.current = components;
+  wiresRef.current = wires;
+
   // History system using refs for reliable snapshots
   const historyStack = useRef<HistoryState[]>([]);
   const historyIndex = useRef(-1);
@@ -177,17 +183,17 @@ export function useCircuitEditor() {
   // Snapshot current state BEFORE a mutation
   const pushHistory = useCallback(() => {
     if (isUndoing.current) return;
-    // Use functional reads to get current state
-    let currentComps: CircuitComponent[] = [];
-    let currentWires: Wire[] = [];
-    setComponents(prev => { currentComps = prev; return prev; });
-    setWires(prev => { currentWires = prev; return prev; });
+
+    const currentComps = componentsRef.current;
+    const currentWires = wiresRef.current;
 
     // Trim any future states if we undid something
-    const stack = historyStack.current.slice(0, historyIndex.current + 1);
+    const stack = historyStack.current.slice(0, Math.max(0, historyIndex.current + 1));
     stack.push({ components: [...currentComps], wires: [...currentWires] });
+
     // Limit history size
     if (stack.length > 50) stack.shift();
+
     historyStack.current = stack;
     historyIndex.current = stack.length - 1;
   }, []);
