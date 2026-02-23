@@ -230,6 +230,8 @@ export const CircuitCanvas: React.FC<Props> = ({
     setRawMousePos(point);
 
     if (resizing) {
+      const comp = components.find(c => c.id === resizing.id);
+      const cType = comp ? comp.type : '';
       const params = resizing.initialValue.split(',').map(s => s.trim());
       // Ensure params[0] (label/length) and params[1] (scale) exist
       if (params.length < 1) params[0] = "";
@@ -238,13 +240,13 @@ export const CircuitCanvas: React.FC<Props> = ({
         const dx = point.x - resizing.startX;
         const dy = point.y - resizing.startY;
 
-        if (resizing.id.includes('vector')) {
+        if (cType.includes('vector')) {
           // Vector uses val2 for length
           if (params.length < 2) params[1] = "";
           const initialLen = parseFloat(params[1]) || 40;
           const newLen = Math.max(20, initialLen + dx);
           params[1] = Math.round(newLen).toString();
-        } else if (resizing.id.includes('trajectory')) {
+        } else if (cType.includes('trajectory')) {
           if (resizing.handle === 'height_traj') {
             if (params.length < 2) params[1] = "";
             const initialHeight = parseFloat(params[1]) || 60;
@@ -256,7 +258,7 @@ export const CircuitCanvas: React.FC<Props> = ({
             const newWidth = Math.max(20, initialWidth + dx);
             params[0] = Math.round(newWidth).toString();
           }
-        } else if (resizing.id.includes('pulley_fixed')) {
+        } else if (cType.includes('pulley_fixed')) {
           if (params.length < 2) params[1] = params[0] || "25";
           const isLeft = resizing.handle === 'length_left';
           const initialLen = parseFloat(isLeft ? params[0] : params[1]) || 25;
@@ -268,8 +270,8 @@ export const CircuitCanvas: React.FC<Props> = ({
           }
         } else {
           // Spring, Pendulum, Axis use val1 for length
-          const initialLen = parseFloat(params[0]) || (resizing.id.includes('pendulum') ? 50 : 60);
-          const delta = resizing.handle === 'end' && resizing.id.includes('pendulum') ? dy : dx;
+          const initialLen = parseFloat(params[0]) || (cType.includes('pendulum') ? 50 : 60);
+          const delta = resizing.handle === 'end' && cType.includes('pendulum') ? dy : dx;
           const newLen = Math.max(20, initialLen + delta);
           params[0] = Math.round(newLen).toString();
         }
@@ -280,7 +282,6 @@ export const CircuitCanvas: React.FC<Props> = ({
 
         // Calculate scale based on distance from component center (comp.x, comp.y)
         // Note: resizing.startX/Y are in SVG coords. We need to find the component's center.
-        const comp = components.find(c => c.id === resizing.id);
         if (comp) {
           const center = { x: comp.x, y: comp.y };
           const initialDist = Math.hypot(resizing.startX - center.x, resizing.startY - center.y);
@@ -294,11 +295,11 @@ export const CircuitCanvas: React.FC<Props> = ({
           }
         }
       } else if (resizing.type === 'angle') {
-        const initialAngle = parseFloat(params[0]) || (resizing.id.includes('cart') ? 0 : 30);
+        const initialAngle = parseFloat(params[0]) || (cType.includes('cart') ? 0 : 30);
         const dy = point.y - resizing.startY;
         // Drag up (negative dy) increases angle. Drag down decreases.
         // For cart we allow -80 to 80. For inclined plane 10 to 80.
-        const minAngle = resizing.id.includes('cart') ? -80 : 10;
+        const minAngle = cType.includes('cart') ? -80 : 10;
         const newAngle = Math.max(minAngle, Math.min(80, initialAngle - dy));
         params[0] = Math.round(newAngle).toString();
         updateComponentValue(resizing.id, params.join(', '));
