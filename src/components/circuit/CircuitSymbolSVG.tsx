@@ -296,9 +296,10 @@ export const renderSymbolOnCanvas = (
       );
     // wire_jumper: handled by the dynamic case below (line ~452)
 
-    case 'mech_support':
+    case 'mech_support': {
+      const supportScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
       return (
-        <g>
+        <g transform={`scale(${supportScale})`}>
           <line x1={-20} y1={0} x2={20} y2={0} stroke={strokeColor} strokeWidth={sw + 1} />
           {[-15, -5, 5, 15].map((x, i) => (
             <line key={i} x1={x} y1={0} x2={x + 5} y2={-8} stroke={strokeColor} strokeWidth={1} />
@@ -306,6 +307,7 @@ export const renderSymbolOnCanvas = (
           <circle cx={0} cy={0} r={2} fill={strokeColor} />
         </g>
       );
+    }
 
     case 'mech_spring': {
       const springParams = value ? value.split(',').map(s => s.trim()) : [];
@@ -329,25 +331,30 @@ export const renderSymbolOnCanvas = (
       );
     }
 
-    case 'mech_block':
+    case 'mech_block': {
+      const blockScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
       return (
-        <g>
+        <g transform={`scale(${blockScale})`}>
           <rect x={-15} y={-15} width={30} height={30} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} rx={2} />
           <text x={0} y={4} fontSize={14} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">m</text>
         </g>
       );
+    }
 
-    case 'mech_weight_circle':
+    case 'mech_weight_circle': {
+      const circleScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
       return (
-        <g>
+        <g transform={`scale(${circleScale})`}>
           <circle cx={0} cy={0} r={15} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} />
           <text x={0} y={4} fontSize={12} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">mc</text>
         </g>
       );
+    }
 
-    case 'mech_pulley_fixed':
+    case 'mech_pulley_fixed': {
+      const pfScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
       return (
-        <g>
+        <g transform={`scale(${pfScale})`}>
           <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
           <circle cx={0} cy={0} r={16} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={4} fill={strokeColor} />
@@ -357,10 +364,12 @@ export const renderSymbolOnCanvas = (
           <path d="M 0 0 L 0 -16 M -8 -16 L 8 -16 M -4 -20 L -8 -16 M 0 -20 L -4 -16 M 4 -20 L 0 -16 M 8 -20 L 4 -16" stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
+    }
 
-    case 'mech_pulley_movable':
+    case 'mech_pulley_movable': {
+      const pmScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
       return (
-        <g>
+        <g transform={`scale(${pmScale})`}>
           <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
           <circle cx={0} cy={0} r={16} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={4} fill={strokeColor} />
@@ -370,24 +379,28 @@ export const renderSymbolOnCanvas = (
           <line x1={0} y1={0} x2={0} y2={16} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
+    }
 
-    case 'mech_inclined_plane':
-      const angle = value ? parseFloat(value) : 30;
+    case 'mech_inclined_plane': {
+      const ipParams = value ? value.split(',').map(s => s.trim()) : [];
+      const angle = parseFloat(ipParams[0]) || 30;
+      const ipScale = parseFloat(ipParams[1]) || 1;
       const angleRad = (angle * Math.PI) / 180;
       const baseLen = 60;
       const height = baseLen * Math.tan(angleRad);
-      const scale = height > 40 ? 40 / height : 1;
-      const drawBase = baseLen * scale;
-      const drawHeight = height * scale;
+      const autoScale = height > 40 ? 40 / height : 1;
+      const drawBase = baseLen * autoScale;
+      const drawHeight = height * autoScale;
 
       return (
-        <g>
+        <g transform={`scale(${ipScale})`}>
           <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
           <polygon points={`${-drawBase / 2},${drawHeight / 2} ${drawBase / 2},${drawHeight / 2} ${drawBase / 2},${-drawHeight / 2}`} fill="#f8fafc" stroke={strokeColor} strokeWidth={sw} strokeLinejoin="round" />
           <path d={`M ${-drawBase / 2 + 15} ${drawHeight / 2} A 15 15 0 0 0 ${-drawBase / 2 + 15 * Math.cos(angleRad)} ${drawHeight / 2 - 15 * Math.sin(angleRad)}`} fill="none" stroke={strokeColor} strokeWidth={1} />
           <text x={-drawBase / 2 + 20} y={drawHeight / 2 - 5} fontSize={10} fill={strokeColor} fontStyle="italic">{angle}°</text>
         </g>
       );
+    }
 
     case 'mech_pendulum': {
       const pendParams = value ? value.split(',').map(s => s.trim()) : [];
@@ -404,14 +417,16 @@ export const renderSymbolOnCanvas = (
       );
     }
 
-    case 'mech_cart':
+    case 'mech_cart': {
+      const cartScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
       return (
-        <g>
+        <g transform={`scale(${cartScale})`}>
           <rect x={-20} y={-12} width={40} height={15} fill="#f1f5f9" stroke={strokeColor} strokeWidth={sw} rx={2} />
           <circle cx={-12} cy={7} r={4} fill="white" stroke={strokeColor} strokeWidth={sw} />
           <circle cx={12} cy={7} r={4} fill="white" stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
+    }
 
     case 'mech_vector': {
       const vecParams = value ? value.split(',').map(s => s.trim()) : [];
