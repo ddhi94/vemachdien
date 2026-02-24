@@ -494,9 +494,22 @@ export function useCircuitEditor() {
       if (endPoint) {
         // Use exact endpoint from caller — do NOT re-snap, it's already precise
         const last = finalPoints[finalPoints.length - 1];
-        // Orthogonal routing
-        if (Math.abs(last.x - endPoint.x) > 5 && Math.abs(last.y - endPoint.y) > 5) {
-          finalPoints.push({ x: endPoint.x, y: last.y });
+        // Orthogonal routing: prefer horizontal-first, handle near-vertical alignment
+        const adx = Math.abs(last.x - endPoint.x);
+        const ady = Math.abs(last.y - endPoint.y);
+        if (adx > 5 && ady > 5) {
+          if (adx < 20 && ady > 40) {
+            // Nearly vertical: add offset to create Z-shape routing
+            const offsetX = 40;
+            const midX = last.x + (last.x < endPoint.x ? offsetX : -offsetX);
+            const midY = (last.y + endPoint.y) / 2;
+            finalPoints.push({ x: midX, y: last.y });
+            finalPoints.push({ x: midX, y: midY });
+            finalPoints.push({ x: endPoint.x, y: midY });
+          } else {
+            // Standard: horizontal first, then vertical
+            finalPoints.push({ x: endPoint.x, y: last.y });
+          }
         }
         finalPoints.push({ x: endPoint.x, y: endPoint.y });
       }
