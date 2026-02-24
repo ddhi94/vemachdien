@@ -13,7 +13,7 @@ function calcConnectionPoints(comp: CircuitComponent): Point[] {
   const singlePointTypes: ComponentType[] = [
     'junction', 'terminal_positive', 'terminal_negative',
     'ground', 'mech_support', 'mech_pendulum',
-    'mech_axis', 'mech_line_dashed', 'mech_arc', 'mech_trajectory', 'mech_vector'
+    'mech_axis', 'mech_axis_y', 'mech_line_dashed', 'mech_arc', 'mech_trajectory', 'mech_vector'
   ];
   if (singlePointTypes.includes(comp.type)) {
     return [{ x: comp.x, y: comp.y }];

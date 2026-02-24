@@ -293,14 +293,7 @@ export const renderSymbolOnCanvas = (
           <line x1={-2} y1={18} x2={2} y2={18} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
-    case 'wire_jumper':
-      return (
-        <g>
-          <circle cx={-15} cy={0} r={2.5} fill={strokeColor} />
-          <line x1={-12.5} y1={0} x2={12.5} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
-        </g>
-      );
+    // wire_jumper: handled by the dynamic case below (line ~452)
 
     case 'mech_support':
       return (
@@ -418,6 +411,16 @@ export const renderSymbolOnCanvas = (
         </g>
       );
 
+    case 'mech_axis_y': {
+      const axisYLen = value ? parseFloat(value) : 100;
+      return (
+        <g>
+          <line x1={0} y1={0} x2={0} y2={-axisYLen} stroke={strokeColor} strokeWidth={sw} />
+          <polygon points={`0,${-axisYLen} -4,${-axisYLen + 8} 4,${-axisYLen + 8}`} fill={strokeColor} />
+        </g>
+      );
+    }
+
     case 'mech_line_dashed':
       const dashLen = value ? parseFloat(value) : 60;
       return (
@@ -453,11 +456,14 @@ export const renderSymbolOnCanvas = (
       const jumperLen = value ? parseFloat(value.split(',')[0] || '60') : 60;
       return (
         <g>
-          {/* Main wire line */}
+          {/* Main wire line — stretches between the two terminals */}
           <line x1={0} y1={0} x2={jumperLen} y2={0} stroke={strokeColor} strokeWidth={sw + 1} strokeLinecap="round" />
-          {/* Junction-style terminals (black circles) */}
-          <circle cx={0} cy={0} r={4} fill={strokeColor} />
-          <circle cx={jumperLen} cy={0} r={4} fill={strokeColor} />
+          {/* Terminal 1 (start) — round node */}
+          <circle cx={0} cy={0} r={8} fill="none" stroke={strokeColor} strokeWidth={1} opacity={0.25} />
+          <circle cx={0} cy={0} r={5} fill={strokeColor} />
+          {/* Terminal 2 (end) — round node */}
+          <circle cx={jumperLen} cy={0} r={8} fill="none" stroke={strokeColor} strokeWidth={1} opacity={0.25} />
+          <circle cx={jumperLen} cy={0} r={5} fill={strokeColor} />
         </g>
       );
     }

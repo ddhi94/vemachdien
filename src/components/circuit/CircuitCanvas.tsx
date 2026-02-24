@@ -985,13 +985,18 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {/* Invisible hit area */}
                   {isPointLike ? (
                     <circle cx={0} cy={0} r={15} fill="transparent" />
+                  ) : comp.type === 'wire_jumper' ? (
+                    <rect x={-5} y={-15} width={(comp.value ? parseFloat(comp.value.split(',')[0] || '60') : 60) + 10} height={30} fill="transparent" />
                   ) : (
                     <rect x={-45} y={-22} width={90} height={44} fill="transparent" />
                   )}
 
                   {/* Selection highlight */}
-                  {isSelected && !isPointLike && (
+                  {isSelected && !isPointLike && comp.type !== 'wire_jumper' && (
                     <rect x={-45} y={-22} width={90} height={44} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" rx={4} />
+                  )}
+                  {isSelected && comp.type === 'wire_jumper' && (
+                    <rect x={-8} y={-15} width={(comp.value ? parseFloat(comp.value.split(',')[0] || '60') : 60) + 16} height={30} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" rx={4} />
                   )}
                   {isSelected && isPointLike && (
                     <circle cx={0} cy={0} r={12} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" />
@@ -1009,7 +1014,8 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {renderSymbolOnCanvas(
                     comp.type,
                     isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)',
-                    2, 60
+                    2, 60,
+                    comp.value
                   )}
 
                   {/* Label - show for junctions always, for other components only when showLabels is on */}
@@ -1236,9 +1242,9 @@ export const CircuitCanvas: React.FC<Props> = ({
                       key={`${comp.id}_cp_${i}`}
                       cx={cp.x}
                       cy={cp.y}
-                      r={isHovered ? 7 : 4}
+                      r={isHovered ? 7 : (comp.type === 'wire_jumper' ? 5 : 4)}
                       fill={isHovered ? 'hsl(var(--component-selected))' : 'hsl(var(--node-color))'}
-                      opacity={isHovered ? 0.9 : (isMechComp && comp.type !== 'wire_jumper' ? 0 : 0.5)}
+                      opacity={isHovered ? 0.9 : (comp.type === 'wire_jumper' ? 0.8 : (isMechComp ? 0 : 0.5))}
                       style={{ cursor: 'move', transition: 'r 0.15s, opacity 0.15s' }}
                       onMouseDown={(e) => {
                         e.stopPropagation();
