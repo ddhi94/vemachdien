@@ -394,13 +394,16 @@ export const renderSymbolOnCanvas = (
         </g>
       );
 
-    case 'mech_vector':
+    case 'mech_vector': {
+      const vecParams = value ? value.split(',').map(s => s.trim()) : [];
+      const vecLen = parseFloat(vecParams[1]) || 40;
       return (
         <g>
-          <line x1={0} y1={0} x2={40} y2={0} stroke={strokeColor} strokeWidth={sw + 1} />
-          <polygon points="40,0 32,-4 32,4" fill={strokeColor} />
+          <line x1={0} y1={0} x2={vecLen} y2={0} stroke={strokeColor} strokeWidth={sw + 1} />
+          <polygon points={`${vecLen},0 ${vecLen - 8},-4 ${vecLen - 8},4`} fill={strokeColor} />
         </g>
       );
+    }
 
     case 'mech_axis':
       const axisLen = value ? parseFloat(value) : 100;

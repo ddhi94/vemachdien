@@ -269,17 +269,16 @@ export const CircuitCanvas: React.FC<Props> = ({
             // Critical: Update position and rotation in real-time
             onUpdateComponentPosition(resizing.id, newX, newY);
             onUpdateComponentRotation(resizing.id, newRot);
-            updateComponentValue(resizing.id, params.join(', '));
           } else {
             const initialLen = parseFloat(params[paramIdx]) || (isWire ? 60 : 40);
             const newLen = Math.max(isWire ? 10 : 20, initialLen + dx);
             params[paramIdx] = Math.round(newLen).toString();
-            updateComponentValue(resizing.id, params.join(', '));
           }
+        } else if (cType === 'mech_trajectory') {
+          // Trajectory: width in params[0], height in params[1]
           if (resizing.handle === 'height_traj') {
             if (params.length < 2) params[1] = "";
             const initialHeight = parseFloat(params[1]) || 60;
-            // Negative dy means dragging UP (increasing height since Y points down)
             const newHeight = Math.max(10, initialHeight - dy);
             params[1] = Math.round(newHeight).toString();
           } else {
@@ -298,9 +297,11 @@ export const CircuitCanvas: React.FC<Props> = ({
             params[1] = Math.round(newLen).toString();
           }
         } else {
-          // Spring, Pendulum, Axis use val1 for length
-          const initialLen = parseFloat(params[0]) || (cType.includes('pendulum') ? 50 : 60);
-          const delta = resizing.handle === 'end' && cType.includes('pendulum') ? dy : dx;
+          // Spring, Pendulum, Axis Ox, Axis Oy use val1 for length
+          const initialLen = parseFloat(params[0]) || (cType.includes('pendulum') ? 50 : (cType === 'mech_axis' ? 100 : 60));
+          const delta = (resizing.handle === 'end' && cType.includes('pendulum')) ? dy
+            : (cType === 'mech_axis_y') ? -dy
+              : dx;
           const newLen = Math.max(20, initialLen + delta);
           params[0] = Math.round(newLen).toString();
         }
@@ -1058,16 +1059,20 @@ export const CircuitCanvas: React.FC<Props> = ({
                         />
                       ))}
 
-                      {/* End Handle for Length (Spring, Pendulum, Axis) */}
-                      {(comp.type === 'mech_spring' || comp.type === 'mech_pendulum' || comp.type === 'mech_axis') && (
+                      {/* End Handle for Length (Spring, Pendulum, Axis Ox, Axis Oy) */}
+                      {(comp.type === 'mech_spring' || comp.type === 'mech_pendulum' || comp.type === 'mech_axis' || comp.type === 'mech_axis_y') && (
                         <circle
-                          cx={comp.type === 'mech_pendulum' ? 0 : (comp.value ? parseFloat(comp.value.split(',')[0]) : (comp.type === 'mech_axis' ? 100 : 60))}
-                          cy={comp.type === 'mech_pendulum' ? (comp.value ? parseFloat(comp.value.split(',')[0]) : 50) : 0}
+                          cx={comp.type === 'mech_pendulum' ? 0
+                            : comp.type === 'mech_axis_y' ? 0
+                              : (comp.value ? parseFloat(comp.value.split(',')[0]) : (comp.type === 'mech_axis' ? 100 : 60))}
+                          cy={comp.type === 'mech_pendulum' ? (comp.value ? parseFloat(comp.value.split(',')[0]) : 50)
+                            : comp.type === 'mech_axis_y' ? -(comp.value ? parseFloat(comp.value.split(',')[0]) : 100)
+                              : 0}
                           r={6}
                           fill="hsl(var(--component-selected))"
                           stroke="white"
                           strokeWidth={2}
-                          style={{ cursor: comp.type === 'mech_pendulum' ? 'ns-resize' : 'ew-resize' }}
+                          style={{ cursor: (comp.type === 'mech_pendulum' || comp.type === 'mech_axis_y') ? 'ns-resize' : 'ew-resize' }}
                           onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'length', 'end')}
                         />
                       )}
