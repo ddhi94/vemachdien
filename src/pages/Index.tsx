@@ -303,6 +303,8 @@ const Index = () => {
               onMoveSelected={editor.moveSelected}
               onRotateComponent={editor.rotateComponent}
               onToggleSwitch={editor.toggleSwitch}
+              onUpdateComponentPosition={editor.updateComponentPosition}
+              onUpdateComponentRotation={editor.updateComponentRotation}
               onClearSelection={editor.clearSelection}
               updateComponentValue={editor.updateComponentValue}
               onStartWire={editor.startDrawingWire}

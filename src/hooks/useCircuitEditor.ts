@@ -257,7 +257,44 @@ export function useCircuitEditor() {
 
       setWires(prevWires => updateWiresWithOrthogonalRouting(prevWires, ptMap));
 
-      return prev.map(c => c.id === id ? newComp : c);
+      // 1. Stickiness logic for wire_jumper:
+      // If any jumper wire end is at an old terminal of this component, update the jumper.
+      const updatedComps = prev.map(c => c.id === id ? newComp : c);
+      return updatedComps.map(c => {
+        if (c.type !== 'wire_jumper') return c;
+        const currentParams = c.value ? c.value.split(',').map(s => s.trim()) : ["60"];
+        const L = parseFloat(currentParams[0]) || 60;
+        const rad = (c.rotation * Math.PI) / 180;
+        const pStart = { x: c.x, y: c.y };
+        const pEnd = { x: c.x + L * Math.cos(rad), y: c.y + L * Math.sin(rad) };
+
+        let startInSet = oldPts.some(op => Math.hypot(op.x - pStart.x, op.y - pStart.y) < 5);
+        let endInSet = oldPts.some(op => Math.hypot(op.x - pEnd.x, op.y - pEnd.y) < 5);
+
+        if (!startInSet && !endInSet) return c;
+
+        let newPStart = { ...pStart };
+        let newPEnd = { ...pEnd };
+
+        if (startInSet) {
+          newPStart = { x: pStart.x + dx, y: pStart.y + dy };
+        }
+        if (endInSet) {
+          newPEnd = { x: pEnd.x + dx, y: pEnd.y + dy };
+        }
+
+        const newLen = Math.hypot(newPEnd.x - newPStart.x, newPEnd.y - newPStart.y);
+        const newRot = Math.atan2(newPEnd.y - newPStart.y, newPEnd.x - newPStart.x) * 180 / Math.PI;
+        currentParams[0] = Math.round(newLen).toString();
+
+        return {
+          ...c,
+          x: newPStart.x,
+          y: newPStart.y,
+          rotation: newRot,
+          value: currentParams.join(', ')
+        };
+      });
     });
   }, []);
 
@@ -295,7 +332,47 @@ export function useCircuitEditor() {
       });
 
       // Move selected components
-      return prev.map(c => ids.includes(c.id) ? { ...c, x: c.x + dx, y: c.y + dy } : c);
+      const movedMain = prev.map(c => ids.includes(c.id) ? { ...c, x: c.x + dx, y: c.y + dy } : c);
+
+      // 2. Stickiness logic for SELECTED/UNSELECTED Jumper Wires
+      return movedMain.map(c => {
+        if (c.type !== 'wire_jumper') return c;
+        // If the jumper itself is selected, it moves as a whole (already handled by movedMain)
+        // BUT if its ends are connected to other moving components, we might need to handle offsets.
+        // For simplicity, let's treat it as: if the jumper is moving as a whole, pStart and pEnd both get +dx, +dy.
+        // If only one end is attached to a moving set, it stretches.
+
+        const currentParams = c.value ? c.value.split(',').map(s => s.trim()) : ["60"];
+        const L = parseFloat(currentParams[0]) || 60;
+        const rad = (c.rotation * Math.PI) / 180;
+        const pStart = { x: c.x, y: c.y };
+        const pEnd = { x: c.x + L * Math.cos(rad), y: c.y + L * Math.sin(rad) };
+
+        // Check if ends were attached to ANY moving component's old connection points
+        const startAttached = allOldPts.some(item => Math.hypot(item.old.x - pStart.x, item.old.y - pStart.y) < 5);
+        const endAttached = allOldPts.some(item => Math.hypot(item.old.x - pEnd.x, item.old.y - pEnd.y) < 5);
+
+        if (!startAttached && !endAttached) return c;
+        if (ids.includes(c.id)) return c; // Jumper itself is moving, no stretch needed relative to group
+
+        let newPStart = { ...pStart };
+        let newPEnd = { ...pEnd };
+
+        if (startAttached) newPStart = { x: pStart.x + dx, y: pStart.y + dy };
+        if (endAttached) newPEnd = { x: pEnd.x + dx, y: pEnd.y + dy };
+
+        const newLen = Math.hypot(newPEnd.x - newPStart.x, newPEnd.y - newPStart.y);
+        const newRot = Math.atan2(newPEnd.y - newPStart.y, newPEnd.x - newPStart.x) * 180 / Math.PI;
+        currentParams[0] = Math.round(newLen).toString();
+
+        return {
+          ...c,
+          x: newPStart.x,
+          y: newPStart.y,
+          rotation: newRot,
+          value: currentParams.join(', ')
+        };
+      });
     });
   }, []);
 
@@ -540,8 +617,15 @@ export function useCircuitEditor() {
   }, []);
 
   const updateComponentValue = useCallback((id: string, value: string) => {
-    // We don't push history for every mouse move (doing it in handleMouseUp instead)
     setComponents(prev => prev.map(c => c.id === id ? { ...c, value } : c));
+  }, []);
+
+  const updateComponentPosition = useCallback((id: string, x: number, y: number) => {
+    setComponents(prev => prev.map(c => c.id === id ? { ...c, x, y } : c));
+  }, []);
+
+  const updateComponentRotation = useCallback((id: string, rotation: number) => {
+    setComponents(prev => prev.map(c => c.id === id ? { ...c, rotation } : c));
   }, []);
 
   const loadParsedCircuit = useCallback((comps: CircuitComponent[], ws: Wire[]) => {
@@ -611,6 +695,8 @@ export function useCircuitEditor() {
     clearAll,
     setComponentLabel,
     updateComponentValue,
+    updateComponentPosition,
+    updateComponentRotation,
     moveLabel,
     loadParsedCircuit,
     handleZoom,

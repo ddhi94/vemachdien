@@ -453,8 +453,11 @@ export const renderSymbolOnCanvas = (
       const jumperLen = value ? parseFloat(value.split(',')[0] || '60') : 60;
       return (
         <g>
-          <line x1={0} y1={0} x2={jumperLen} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          {/* We might add small dots on the ends if we want, but jumper is usually just a line */}
+          {/* Main wire line */}
+          <line x1={0} y1={0} x2={jumperLen} y2={0} stroke={strokeColor} strokeWidth={sw + 1} strokeLinecap="round" />
+          {/* PhET-style terminals (hollow circles) */}
+          <circle cx={0} cy={0} r={5} fill="white" stroke="#ef4444" strokeWidth={2} />
+          <circle cx={jumperLen} cy={0} r={5} fill="white" stroke="#ef4444" strokeWidth={2} />
         </g>
       );
     }

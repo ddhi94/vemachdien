@@ -18,6 +18,8 @@ interface Props {
   onMoveSelected: (ids: string[], dx: number, dy: number) => void;
   onRotateComponent: (id: string) => void;
   onToggleSwitch: (id: string) => void;
+  onUpdateComponentPosition: (id: string, x: number, y: number) => void;
+  onUpdateComponentRotation: (id: string, rotation: number) => void;
   onClearSelection: () => void;
   onStartWire: (p: Point) => void;
   onFinishWire: (endPoint?: Point) => void;
@@ -64,6 +66,8 @@ export const CircuitCanvas: React.FC<Props> = ({
   onMoveSelected,
   onRotateComponent,
   onToggleSwitch,
+  onUpdateComponentPosition,
+  onUpdateComponentRotation,
   onClearSelection,
   onStartWire,
   onFinishWire,
@@ -241,14 +245,37 @@ export const CircuitCanvas: React.FC<Props> = ({
         const dy = point.y - resizing.startY;
 
         if (cType.includes('vector') || cType === 'wire_jumper') {
-          // Vector uses val2 for length
+          // Vector uses val2 for length, Jumper uses val1
           const isWire = cType === 'wire_jumper';
           const paramIdx = isWire ? 0 : 1;
           if (params.length < (isWire ? 1 : 2)) params[paramIdx] = "";
-          const initialLen = parseFloat(params[paramIdx]) || (isWire ? 60 : 40);
-          const newLen = Math.max(isWire ? 10 : 20, initialLen + dx);
-          params[paramIdx] = Math.round(newLen).toString();
-        } else if (cType.includes('trajectory')) {
+
+          if (isWire && resizing.handle === 'start') {
+            // Dragging the START of the jumper
+            const initialLen = parseFloat(params[0]) || 60;
+            const rad = (comp.rotation * Math.PI) / 180;
+            const globalEndX = resizing.startX + initialLen * Math.cos(rad);
+            const globalEndY = resizing.startY + initialLen * Math.sin(rad);
+
+            const newX = snapToGrid(point.x);
+            const newY = snapToGrid(point.y);
+
+            const dx_end = globalEndX - newX;
+            const dy_end = globalEndY - newY;
+            const newLen = Math.hypot(dx_end, dy_end);
+            const newRot = Math.atan2(dy_end, dx_end) * 180 / Math.PI;
+
+            params[0] = Math.round(newLen).toString();
+            // Critical: Update position and rotation in real-time
+            onUpdateComponentPosition(resizing.id, newX, newY);
+            onUpdateComponentRotation(resizing.id, newRot);
+            updateComponentValue(resizing.id, params.join(', '));
+          } else {
+            const initialLen = parseFloat(params[paramIdx]) || (isWire ? 60 : 40);
+            const newLen = Math.max(isWire ? 10 : 20, initialLen + dx);
+            params[paramIdx] = Math.round(newLen).toString();
+            updateComponentValue(resizing.id, params.join(', '));
+          }
           if (resizing.handle === 'height_traj') {
             if (params.length < 2) params[1] = "";
             const initialHeight = parseFloat(params[1]) || 60;
@@ -1067,18 +1094,32 @@ export const CircuitCanvas: React.FC<Props> = ({
                         />
                       )}
 
-                      {/* Length Handle for Force Vector and Wire Jumper */}
+                      {/* Handles for Force Vector and Wire Jumper */}
                       {(comp.type === 'mech_vector' || comp.type === 'wire_jumper') && (
-                        <circle
-                          cx={comp.type === 'wire_jumper' ? (comp.value ? parseFloat(comp.value.split(',')[0] || '60') : 60) : (comp.value ? parseFloat(comp.value.split(',')[1] || '40') : 40)}
-                          cy={0}
-                          r={6}
-                          fill="hsl(var(--component-selected))"
-                          stroke="white"
-                          strokeWidth={2}
-                          style={{ cursor: 'ew-resize' }}
-                          onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'length', 'end_vector')}
-                        />
+                        <>
+                          <circle
+                            cx={comp.type === 'wire_jumper' ? (comp.value ? parseFloat(comp.value.split(',')[0] || '60') : 60) : (comp.value ? parseFloat(comp.value.split(',')[1] || '40') : 40)}
+                            cy={0}
+                            r={7}
+                            fill={comp.type === 'wire_jumper' ? "#ef4444" : "hsl(var(--component-selected))"}
+                            stroke="white"
+                            strokeWidth={2}
+                            style={{ cursor: 'ew-resize' }}
+                            onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'length', 'end')}
+                          />
+                          {comp.type === 'wire_jumper' && (
+                            <circle
+                              cx={0}
+                              cy={0}
+                              r={7}
+                              fill="#ef4444"
+                              stroke="white"
+                              strokeWidth={2}
+                              style={{ cursor: 'move' }}
+                              onMouseDown={(e) => handleResizeHandleMouseDown(e, comp, 'length', 'start')}
+                            />
+                          )}
+                        </>
                       )}
 
                       {/* Handles for Pulleys (Strings with Angle capabilities) */}
