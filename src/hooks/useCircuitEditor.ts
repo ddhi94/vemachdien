@@ -490,18 +490,15 @@ export function useCircuitEditor() {
       if (endPoint) {
         // Use exact endpoint from caller — do NOT re-snap, it's already precise
         const last = finalPoints[finalPoints.length - 1];
-        // Orthogonal routing: choose direction that avoids passing through component body
+        // Orthogonal routing: Z-shape (3-segment) through midpoint
+        // This avoids passing through BOTH start and end component bodies
         const adx = Math.abs(last.x - endPoint.x);
         const ady = Math.abs(last.y - endPoint.y);
         if (adx > 5 && ady > 5) {
-          if (ady >= adx) {
-            // More vertical distance: vertical-first (go up/down, then horizontal)
-            // This avoids wire passing through the starting component's body
-            finalPoints.push({ x: last.x, y: endPoint.y });
-          } else {
-            // More horizontal distance: horizontal-first (go left/right, then vertical)
-            finalPoints.push({ x: endPoint.x, y: last.y });
-          }
+          // Z-shape: vertical → horizontal at midpoint → vertical
+          const midY = snapToGrid((last.y + endPoint.y) / 2);
+          finalPoints.push({ x: last.x, y: midY });
+          finalPoints.push({ x: endPoint.x, y: midY });
         }
         finalPoints.push({ x: endPoint.x, y: endPoint.y });
       }
