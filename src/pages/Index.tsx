@@ -216,42 +216,34 @@ const Index = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-2 border-b" style={{ background: 'hsl(var(--palette-bg))', borderColor: 'hsl(var(--palette-hover))' }}>
+      <header className="flex items-center gap-3 px-3 py-1.5 border-b" style={{ background: 'hsl(var(--palette-bg))', borderColor: 'hsl(var(--palette-hover))' }}>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Zap size={18} className="text-primary-foreground" />
+          <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: 'hsl(var(--primary))' }}>
+            <Zap size={15} className="text-primary-foreground" />
           </div>
-          <div className="flex flex-row items-center gap-3">
-            <div>
-              <h1 className="text-sm font-semibold" style={{ color: 'hsl(var(--palette-foreground))' }}>
-                Sơ Đồ Mạch Điện
-              </h1>
-              <p className="text-[10px]" style={{ color: 'hsl(var(--status-foreground))' }}>
-                Vẽ sơ đồ nguyên lí mạch điện
-              </p>
-            </div>
-            <div className="h-6 w-px bg-border mx-2"></div>
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md border">
-              Phát triển bởi Hieudd
-            </span>
+          <div>
+            <h1 className="text-[13px] font-semibold leading-tight" style={{ color: 'hsl(var(--palette-foreground))' }}>
+              Circuit Sketcher
+            </h1>
+            <p className="text-[9px] font-mono leading-tight" style={{ color: 'hsl(var(--status-foreground))' }}>
+              by Hieudd
+            </p>
           </div>
         </div>
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-2">
-          <label className="text-[11px] font-medium" style={{ color: 'hsl(var(--status-foreground))' }}>Mẫu sơ đồ:</label>
-          <select
-            className="bg-secondary text-foreground text-xs rounded border-none px-2 py-1 focus:ring-1 focus:ring-primary outline-none"
-            onChange={(e) => e.target.value && applyTemplate(e.target.value)}
-            defaultValue=""
-          >
-            <option value="" disabled>--- Chọn mẫu ---</option>
-            {TEMPLATES.map(t => (
-              <option key={t.name} value={t.code}>{t.name}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          className="text-[11px] rounded-md px-2.5 py-1 outline-none cursor-pointer"
+          style={{ background: 'hsl(var(--palette-hover))', color: 'hsl(var(--palette-foreground))', border: '1px solid hsl(var(--palette-active))' }}
+          onChange={(e) => e.target.value && applyTemplate(e.target.value)}
+          defaultValue=""
+        >
+          <option value="" disabled>Mẫu sơ đồ ▾</option>
+          {TEMPLATES.map(t => (
+            <option key={t.name} value={t.code}>{t.name}</option>
+          ))}
+        </select>
       </header>
 
       {/* Main area */}
@@ -333,15 +325,20 @@ const Index = () => {
 
       {/* Status bar */}
       <div
-        className="flex items-center justify-between px-4 py-1 text-[11px] font-mono"
+        className="flex items-center justify-between px-3 py-0.5 text-[10px] font-mono"
         style={{ background: 'hsl(var(--status-bar))', color: 'hsl(var(--status-foreground))' }}
       >
-        <span>
-          {editor.components.length} linh kiện · {editor.wires.length} dây dẫn
-          {editor.selectedIds.length > 0 && ` · ${editor.selectedIds.length} đã chọn`}
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'hsl(var(--accent))' }} />
+          {editor.components.length} linh kiện
+          <span className="opacity-40">·</span>
+          {editor.wires.length} dây
+          {editor.selectedIds.length > 0 && (
+            <><span className="opacity-40">·</span>{editor.selectedIds.length} chọn</>
+          )}
         </span>
-        <span>
-          {mode === 'select' ? 'Chọn (V)' : 'Vẽ dây (W)'} · Kéo từ chấm tròn để nối dây · Nhấp dây để thêm điểm · Nhấp đúp để xoay
+        <span className="opacity-60">
+          {mode === 'select' ? 'V: Chọn' : 'W: Vẽ dây'} · R: Xoay · Del: Xóa · H: Ẩn node
         </span>
       </div>
     </div>

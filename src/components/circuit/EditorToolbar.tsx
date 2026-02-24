@@ -1,5 +1,8 @@
-import React from 'react';
-import { MousePointer2, Pen, RotateCcw, Trash2, ZoomIn, ZoomOut, Download, FileText, RotateCw, EyeOff, Eye, Tag, Sun, Moon, LayoutTemplate } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  MousePointer2, Pen, RotateCw, Trash2, ZoomIn, ZoomOut,
+  Download, RotateCcw, EyeOff, Eye, Tag, Sun, Moon, ChevronDown
+} from 'lucide-react';
 
 interface Props {
   mode: 'select' | 'wire';
@@ -25,99 +28,92 @@ interface Props {
 }
 
 export const EditorToolbar: React.FC<Props> = ({
-  mode,
-  onModeChange,
-  onUndo,
-  onDelete,
-  onZoomIn,
-  onZoomOut,
-  onClear,
-  onExportSVG,
-  onExportPNG,
-  onExportJPG,
-  onRotate,
-  hasSelection,
-  hideNodes,
-  onToggleHideNodes,
-  showLabels,
-  onToggleShowLabels,
-  isDarkMode,
-  onToggleTheme,
-  globalStrokeWidth,
-  onStrokeWidthChange,
+  mode, onModeChange, onUndo, onDelete,
+  onZoomIn, onZoomOut, onClear,
+  onExportSVG, onExportPNG, onExportJPG,
+  onRotate, hasSelection,
+  hideNodes, onToggleHideNodes,
+  showLabels, onToggleShowLabels,
+  isDarkMode, onToggleTheme,
+  globalStrokeWidth, onStrokeWidthChange,
 }) => {
-  const btnBase = "flex items-center justify-center w-9 h-9 rounded-md transition-colors duration-150";
-  const btnActive = "bg-primary text-primary-foreground";
-  const btnDefault = "hover:bg-secondary text-foreground";
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    };
+    if (exportOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [exportOpen]);
+
+  const btn = (active: boolean) => `toolbar-btn ${active ? 'toolbar-btn-active' : ''}`;
 
   return (
     <div
-      className="flex items-center gap-1 px-3 py-1.5 border-b"
+      className="flex items-center gap-2 px-3 py-1.5 border-b"
       style={{ background: 'hsl(var(--toolbar-bg))', borderColor: 'hsl(var(--toolbar-border))' }}
     >
-      {/* Mode buttons */}
-      <div className="flex items-center gap-0.5 mr-2">
-        <button
-          className={`${btnBase} ${mode === 'select' ? btnActive : btnDefault}`}
-          onClick={() => onModeChange('select')}
-          title="Chọn & di chuyển (V)"
-        >
-          <MousePointer2 size={16} />
+      {/* Mode group */}
+      <div className="toolbar-group">
+        <button className={btn(mode === 'select')} onClick={() => onModeChange('select')} title="Chọn & di chuyển (V)">
+          <MousePointer2 size={15} />
         </button>
-        <button
-          className={`${btnBase} ${mode === 'wire' ? btnActive : btnDefault}`}
-          onClick={() => onModeChange('wire')}
-          title="Vẽ dây dẫn (W)"
-        >
-          <Pen size={16} />
+        <button className={btn(mode === 'wire')} onClick={() => onModeChange('wire')} title="Vẽ dây dẫn (W)">
+          <Pen size={15} />
         </button>
       </div>
 
-      <div className="w-px h-6 bg-border mx-1" />
+      <div className="toolbar-sep" />
 
-      {/* Edit buttons */}
-      <button className={`${btnBase} ${btnDefault}`} onClick={onRotate} title="Xoay (R)" disabled={!hasSelection}>
-        <RotateCw size={16} className={!hasSelection ? 'opacity-30' : ''} />
-      </button>
-      <button className={`${btnBase} ${btnDefault}`} onClick={onDelete} title="Xóa (Del)" disabled={!hasSelection}>
-        <Trash2 size={16} className={!hasSelection ? 'opacity-30' : ''} />
-      </button>
-      <button className={`${btnBase} ${btnDefault}`} onClick={onUndo} title="Hoàn tác (Ctrl+Z)">
-        <RotateCcw size={16} />
-      </button>
+      {/* Edit group */}
+      <div className="toolbar-group">
+        <button className={btn(false)} onClick={onRotate} title="Xoay (R)" disabled={!hasSelection}>
+          <RotateCw size={15} />
+        </button>
+        <button className={btn(false)} onClick={onDelete} title="Xóa (Del)" disabled={!hasSelection}>
+          <Trash2 size={15} />
+        </button>
+        <button className={btn(false)} onClick={onUndo} title="Hoàn tác (Ctrl+Z)">
+          <RotateCcw size={15} />
+        </button>
+      </div>
 
-      <div className="w-px h-6 bg-border mx-1" />
+      <div className="toolbar-sep" />
 
-      {/* Zoom */}
-      <button className={`${btnBase} ${btnDefault}`} onClick={onZoomOut} title="Thu nhỏ">
-        <ZoomOut size={16} />
-      </button>
-      <button className={`${btnBase} ${btnDefault}`} onClick={onZoomIn} title="Phóng to">
-        <ZoomIn size={16} />
-      </button>
+      {/* Zoom group */}
+      <div className="toolbar-group">
+        <button className={btn(false)} onClick={onZoomOut} title="Thu nhỏ (−)">
+          <ZoomOut size={15} />
+        </button>
+        <button className={btn(false)} onClick={onZoomIn} title="Phóng to (+)">
+          <ZoomIn size={15} />
+        </button>
+      </div>
 
-      <div className="w-px h-6 bg-border mx-1" />
+      <div className="toolbar-sep" />
 
-      <button
-        className={`${btnBase} ${hideNodes ? btnActive : btnDefault}`}
-        onClick={onToggleHideNodes}
-        title={hideNodes ? 'Hiện node (H)' : 'Ẩn node không tên (H)'}
-      >
-        {hideNodes ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
-      <button
-        className={`${btnBase} ${showLabels ? btnActive : btnDefault}`}
-        onClick={onToggleShowLabels}
-        title={showLabels ? 'Ẩn tên linh kiện (L)' : 'Hiện tên linh kiện (L)'}
-      >
-        <Tag size={16} />
-      </button>
+      {/* View group */}
+      <div className="toolbar-group">
+        <button className={btn(hideNodes)} onClick={onToggleHideNodes} title={hideNodes ? 'Hiện node (H)' : 'Ẩn node (H)'}>
+          {hideNodes ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+        <button className={btn(showLabels)} onClick={onToggleShowLabels} title={showLabels ? 'Ẩn tên (L)' : 'Hiện tên (L)'}>
+          <Tag size={15} />
+        </button>
+      </div>
 
-      <div className="w-px h-6 bg-border mx-1" />
+      <div className="toolbar-sep" />
 
-      {/* Stroke Width control */}
-      <div className="flex items-center gap-2 px-2" title="Độ rộng nét vẽ chung (Stroke width)">
-        <span className="text-[11px] font-medium" style={{ color: 'hsl(var(--status-foreground))' }}>Nét: {globalStrokeWidth}px</span>
+      {/* Stroke width */}
+      <div className="flex items-center gap-2 px-1" title="Độ rộng nét vẽ">
+        <span className="text-[10px] font-mono font-medium" style={{ color: 'hsl(var(--muted-foreground))' }}>
+          {globalStrokeWidth}px
+        </span>
         <input
           type="range"
           min="0.5"
@@ -125,43 +121,52 @@ export const EditorToolbar: React.FC<Props> = ({
           step="0.5"
           value={globalStrokeWidth}
           onChange={(e) => onStrokeWidthChange(parseFloat(e.target.value))}
-          className="w-16 accent-primary"
+          className="w-14"
         />
       </div>
 
-      <div className="w-px h-6 bg-border mx-1" />
+      <div className="toolbar-sep" />
 
-      <button
-        className={`${btnBase} ${isDarkMode ? btnActive : btnDefault}`}
-        onClick={onToggleTheme}
-        title={isDarkMode ? 'Chế độ sáng' : 'Chế độ tối'}
-      >
-        {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+      {/* Theme */}
+      <button className={btn(false)} onClick={onToggleTheme} title={isDarkMode ? 'Chế độ sáng' : 'Chế độ tối'}>
+        {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
       </button>
 
       <div className="flex-1" />
 
-      {/* Actions */}
-      <button className={`${btnBase} ${btnDefault}`} onClick={onClear} title="Xóa tất cả">
-        <FileText size={16} />
-      </button>
-      <button className={`${btnBase} ${btnDefault}`} onClick={onExportSVG} title="Xuất SVG">
-        <Download size={16} />
-      </button>
-      <button
-        className={`${btnBase} ${btnDefault} text-[9px] font-bold`}
-        onClick={onExportPNG}
-        title="Xuất PNG"
-      >
-        PNG
-      </button>
-      <button
-        className={`${btnBase} ${btnDefault} text-[9px] font-bold`}
-        onClick={onExportJPG}
-        title="Xuất JPG"
-      >
-        JPG
-      </button>
+      {/* Export dropdown */}
+      <div className="relative" ref={exportRef}>
+        <button
+          className={`toolbar-btn flex items-center gap-1 w-auto px-2.5 ${exportOpen ? 'toolbar-btn-active' : ''}`}
+          onClick={() => setExportOpen(!exportOpen)}
+          title="Xuất file"
+        >
+          <Download size={14} />
+          <ChevronDown size={12} className={`transition-transform ${exportOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {exportOpen && (
+          <div className="export-dropdown">
+            <button onClick={() => { onExportSVG(); setExportOpen(false); }}>
+              <Download size={14} />
+              <span>SVG</span>
+            </button>
+            <button onClick={() => { onExportPNG(); setExportOpen(false); }}>
+              <Download size={14} />
+              <span>PNG</span>
+            </button>
+            <button onClick={() => { onExportJPG(); setExportOpen(false); }}>
+              <Download size={14} />
+              <span>JPG</span>
+            </button>
+            <div className="h-px mx-2" style={{ background: 'hsl(var(--border))' }} />
+            <button onClick={() => { onClear(); setExportOpen(false); }} className="!text-red-500">
+              <Trash2 size={14} />
+              <span>Xóa tất cả</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

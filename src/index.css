@@ -2,57 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 25% 15%;
+    --background: 210 15% 98%;
+    --foreground: 220 20% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 220 20% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 220 20% 12%;
 
-    --primary: 213 70% 45%;
+    --primary: 217 72% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 15% 93%;
-    --secondary-foreground: 215 25% 15%;
+    --secondary: 215 15% 93%;
+    --secondary-foreground: 220 20% 12%;
 
-    --muted: 210 15% 95%;
-    --muted-foreground: 215 12% 55%;
+    --muted: 215 12% 95%;
+    --muted-foreground: 215 12% 50%;
 
-    --accent: 170 55% 42%;
+    --accent: 172 50% 40%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 20% 85%;
-    --input: 214 20% 85%;
-    --ring: 213 70% 45%;
+    --border: 214 18% 88%;
+    --input: 214 18% 88%;
+    --ring: 217 72% 50%;
 
     --radius: 0.5rem;
 
-    /* Circuit editor specific */
-    --canvas-bg: 210 20% 97%;
-    --canvas-grid: 213 30% 88%;
-    --canvas-grid-major: 213 30% 78%;
-    --wire-color: 215 25% 25%;
-    --component-stroke: 215 30% 20%;
+    /* Circuit editor — Light */
+    --canvas-bg: 0 0% 100%;
+    --canvas-grid: 220 10% 93%;
+    --canvas-grid-major: 220 10% 86%;
+    --wire-color: 220 20% 20%;
+    --component-stroke: 220 25% 18%;
     --component-fill: 0 0% 100%;
-    --component-selected: 213 70% 45%;
-    --node-color: 213 70% 45%;
-    --palette-bg: 215 30% 12%;
-    --palette-foreground: 210 20% 90%;
-    --palette-hover: 215 25% 18%;
-    --palette-active: 213 50% 25%;
+    --component-selected: 217 72% 50%;
+    --node-color: 217 72% 50%;
+    --palette-bg: 222 25% 11%;
+    --palette-foreground: 215 20% 88%;
+    --palette-hover: 217 20% 16%;
+    --palette-active: 217 45% 22%;
     --toolbar-bg: 0 0% 100%;
-    --toolbar-border: 214 20% 88%;
-    --status-bar: 215 25% 15%;
-    --status-foreground: 210 15% 75%;
+    --toolbar-border: 214 18% 90%;
+    --status-bar: 222 25% 11%;
+    --status-foreground: 215 12% 60%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -65,51 +65,51 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 224 20% 5%;
+    --foreground: 210 40% 96%;
+    --card: 224 20% 5%;
+    --card-foreground: 210 40% 96%;
+    --popover: 224 20% 5%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 217 80% 60%;
+    --primary-foreground: 224 20% 5%;
+    --secondary: 220 18% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 220 18% 14%;
+    --muted-foreground: 215 16% 58%;
+    --accent: 172 45% 42%;
+    --accent-foreground: 210 40% 96%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
+    --destructive-foreground: 210 40% 96%;
+    --border: 220 16% 16%;
+    --input: 220 16% 16%;
+    --ring: 217 80% 60%;
+    --sidebar-background: 224 20% 6%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 217 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 220 14% 12%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 212.7 26.8% 83.9%;
-    
-    /* Circuit editor specific - Dark Mode */
-    --canvas-bg: 222 47% 6%;
-    --canvas-grid: 215 25% 15%;
-    --canvas-grid-major: 215 25% 20%;
-    --wire-color: 210 40% 90%;
-    --component-stroke: 210 40% 95%;
-    --component-fill: 222 47% 6%;
-    --component-selected: 213 90% 65%;
-    --node-color: 213 90% 65%;
-    --palette-bg: 222 47% 4%;
-    --palette-foreground: 210 40% 90%;
-    --palette-hover: 215 25% 12%;
-    --palette-active: 213 50% 20%;
-    --toolbar-bg: 222 47% 6%;
-    --toolbar-border: 215 25% 15%;
-    --status-bar: 222 47% 3%;
-    --status-foreground: 215 20% 60%;
+    --sidebar-border: 220 14% 12%;
+    --sidebar-ring: 217 80% 60%;
+
+    /* Circuit editor — Dark */
+    --canvas-bg: 224 18% 7%;
+    --canvas-grid: 220 14% 13%;
+    --canvas-grid-major: 220 14% 18%;
+    --wire-color: 210 30% 88%;
+    --component-stroke: 210 30% 92%;
+    --component-fill: 224 18% 7%;
+    --component-selected: 217 85% 65%;
+    --node-color: 217 85% 65%;
+    --palette-bg: 224 20% 4%;
+    --palette-foreground: 210 25% 88%;
+    --palette-hover: 217 25% 12%;
+    --palette-active: 217 45% 18%;
+    --toolbar-bg: 224 18% 7%;
+    --toolbar-border: 220 14% 14%;
+    --status-bar: 224 20% 3%;
+    --status-foreground: 215 14% 50%;
   }
 }
 
@@ -120,7 +120,9 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   .font-mono {
@@ -129,26 +131,150 @@
 }
 
 @layer components {
+
+  /* Canvas grid — subtle dot pattern */
   .circuit-grid {
     background-image:
-      linear-gradient(hsl(var(--canvas-grid)) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--canvas-grid)) 1px, transparent 1px),
-      linear-gradient(hsl(var(--canvas-grid-major)) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--canvas-grid-major)) 1px, transparent 1px);
-    background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+      radial-gradient(circle, hsl(var(--canvas-grid)) 1px, transparent 1px),
+      radial-gradient(circle, hsl(var(--canvas-grid-major)) 1.2px, transparent 1.2px);
+    background-size: 20px 20px, 100px 100px;
   }
 
+  /* Palette items */
   .palette-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-md cursor-grab transition-colors duration-150;
+    @apply flex items-center gap-3 px-3 py-1.5 rounded-md cursor-grab;
     color: hsl(var(--palette-foreground));
+    transition: all 180ms ease;
   }
 
   .palette-item:hover {
     background: hsl(var(--palette-hover));
+    transform: translateX(3px);
   }
 
   .palette-item:active {
     @apply cursor-grabbing;
     background: hsl(var(--palette-active));
+    transform: translateX(1px);
+  }
+
+  /* Toolbar button groups */
+  .toolbar-group {
+    @apply flex items-center gap-0.5 rounded-lg p-0.5;
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  .toolbar-btn {
+    @apply flex items-center justify-center w-8 h-8 rounded-md;
+    transition: all 150ms ease;
+    color: hsl(var(--foreground));
+  }
+
+  .toolbar-btn:hover:not(:disabled) {
+    background: hsl(var(--secondary));
+  }
+
+  .toolbar-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .toolbar-btn-active {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 1px 3px hsl(var(--primary) / 0.3);
+  }
+
+  .toolbar-btn-active:hover {
+    background: hsl(var(--primary));
+    opacity: 0.9;
+  }
+
+  /* Separator */
+  .toolbar-sep {
+    @apply w-px mx-1.5;
+    height: 20px;
+    background: hsl(var(--border));
+    opacity: 0.5;
+  }
+
+  /* Export dropdown */
+  .export-dropdown {
+    @apply absolute right-0 top-full mt-1 rounded-lg border shadow-lg z-50 overflow-hidden;
+    background: hsl(var(--card));
+    border-color: hsl(var(--border));
+    min-width: 140px;
+    animation: dropIn 150ms ease;
+  }
+
+  .export-dropdown button {
+    @apply w-full flex items-center gap-2 px-3 py-2 text-sm;
+    transition: background 120ms ease;
+    color: hsl(var(--foreground));
+  }
+
+  .export-dropdown button:hover {
+    background: hsl(var(--muted));
+  }
+
+  /* Custom range slider */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: hsl(var(--border));
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    cursor: pointer;
+    border: 2px solid hsl(var(--background));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: transform 150ms ease;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    cursor: pointer;
+    border: 2px solid hsl(var(--background));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Category collapse animation */
+  .category-items {
+    overflow: hidden;
+    transition: max-height 250ms ease, opacity 200ms ease;
+  }
+
+  /* Glassmorphism panel */
+  .glass-panel {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  @keyframes dropIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
