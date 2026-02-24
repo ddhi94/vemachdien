@@ -438,42 +438,97 @@ export function parseCircuitNotation(input: string): { components: CircuitCompon
     const components: CircuitComponent[] = [];
     const wires: Wire[] = [];
 
+    // --- Detect if circuit contains a battery (U) => closed loop ---
+    const hasBattery = containsBattery(tree);
+
+    if (hasBattery && tree.type === 'series') {
+      // Split: battery goes bottom, rest goes top
+      const batteryNodes: ParsedNode[] = [];
+      const otherNodes: ParsedNode[] = [];
+
+      (tree.children || []).forEach(child => {
+        if (isBatteryNode(child)) {
+          batteryNodes.push(child);
+        } else {
+          otherNodes.push(child);
+        }
+      });
+
+      // Build top row (non-battery components)
+      const topTree: ParsedNode = otherNodes.length === 1 ? otherNodes[0] : { type: 'series', children: otherNodes };
+      // Build bottom row (battery, possibly multiple)
+      const bottomTree: ParsedNode = batteryNodes.length === 1 ? batteryNodes[0] : { type: 'series', children: batteryNodes };
+
+      const topMeasure = measureNode(topTree);
+      const bottomMeasure = measureNode(bottomTree);
+
+      const totalWidth = Math.max(topMeasure.width, bottomMeasure.width);
+      const rowSpacing = 120; // vertical gap between top and bottom rows
+
+      const cx = 100 + totalWidth / 2;
+      const topY = 250;
+      const bottomY = topY + rowSpacing;
+
+      // Layout top row
+      const topBounds = layoutNode(topTree, cx, topY, components, wires);
+      // Layout bottom row
+      const bottomBounds = layoutNode(bottomTree, cx, bottomY, components, wires);
+
+      // Determine the outer rectangle bounds
+      const leftX = Math.min(topBounds.leftX, bottomBounds.leftX) - 40;
+      const rightX = Math.max(topBounds.rightX, bottomBounds.rightX) + 40;
+
+      // Top row left extension wire
+      wires.push({ id: `wire_${idCounter++}`, points: [{ x: leftX, y: topY }, { x: topBounds.leftX, y: topY }] });
+      // Top row right extension wire
+      wires.push({ id: `wire_${idCounter++}`, points: [{ x: topBounds.rightX, y: topY }, { x: rightX, y: topY }] });
+      // Bottom row left extension wire
+      wires.push({ id: `wire_${idCounter++}`, points: [{ x: leftX, y: bottomY }, { x: bottomBounds.leftX, y: bottomY }] });
+      // Bottom row right extension wire
+      wires.push({ id: `wire_${idCounter++}`, points: [{ x: bottomBounds.rightX, y: bottomY }, { x: rightX, y: bottomY }] });
+
+      // Left vertical bus (connecting top-left to bottom-left)
+      wires.push({ id: `wire_${idCounter++}`, points: [{ x: leftX, y: topY }, { x: leftX, y: bottomY }] });
+      // Right vertical bus (connecting top-right to bottom-right)
+      wires.push({ id: `wire_${idCounter++}`, points: [{ x: rightX, y: topY }, { x: rightX, y: bottomY }] });
+
+      return { components, wires };
+    }
+
+    // --- Default: open circuit layout (no battery) ---
     const measure = measureNode(tree);
     const cx = 100 + measure.width / 2;
     const cy = 300;
 
     const bounds = layoutNode(tree, cx, cy, components, wires);
 
-    // Add terminal points A and B
+    // Add terminal extensions A and B
     const terminalAx = bounds.leftX - 40;
     const terminalBx = bounds.rightX + 40;
 
-    // Wire to terminal A
-    wires.push({
-      id: `wire_${idCounter++}`,
-      points: [
-        { x: terminalAx, y: cy },
-        { x: bounds.leftX, y: cy },
-      ],
-    });
-
-    // Wire to terminal B
-    wires.push({
-      id: `wire_${idCounter++}`,
-      points: [
-        { x: bounds.rightX, y: cy },
-        { x: terminalBx, y: cy },
-      ],
-    });
-
-    // Add A and B label components (use special markers)
-    // We'll just add dots/labels via special components
-    // Actually let's add them as text labels by using "battery" type with label A/B
-    // Better: just return the wires and let the canvas show them
+    wires.push({ id: `wire_${idCounter++}`, points: [{ x: terminalAx, y: cy }, { x: bounds.leftX, y: cy }] });
+    wires.push({ id: `wire_${idCounter++}`, points: [{ x: bounds.rightX, y: cy }, { x: terminalBx, y: cy }] });
 
     return { components, wires };
   } catch (e) {
     console.error('Parse error:', e);
     return { components: [], wires: [] };
   }
+}
+
+// Helper: check if a node tree contains any battery
+function containsBattery(node: ParsedNode): boolean {
+  if (node.type === 'component') {
+    return node.componentType === 'battery_single' || node.componentType === 'battery';
+  }
+  return (node.children || []).some(c => containsBattery(c));
+}
+
+// Helper: check if a single node is a battery (including groups containing only batteries)  
+function isBatteryNode(node: ParsedNode): boolean {
+  if (node.type === 'component') {
+    return node.componentType === 'battery_single' || node.componentType === 'battery';
+  }
+  // For parallel/series groups, check if ALL children are batteries
+  return (node.children || []).every(c => isBatteryNode(c));
 }
