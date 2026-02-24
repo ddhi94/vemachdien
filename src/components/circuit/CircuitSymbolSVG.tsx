@@ -461,7 +461,7 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           {/* Main wire line — stretches between the two terminals */}
-          <line x1={0} y1={0} x2={jumperLen} y2={0} stroke={strokeColor} strokeWidth={sw + 1} strokeLinecap="round" />
+          <line x1={0} y1={0} x2={jumperLen} y2={0} stroke={strokeColor} strokeWidth={sw} strokeLinecap="round" />
           {/* Terminal circles — hidden when hideNodes is on */}
           {!hideNodes && (
             <>
