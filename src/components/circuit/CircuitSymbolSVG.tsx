@@ -293,6 +293,14 @@ export const renderSymbolOnCanvas = (
           <line x1={-2} y1={18} x2={2} y2={18} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
+    case 'wire_jumper':
+      return (
+        <g>
+          <circle cx={-15} cy={0} r={2.5} fill={strokeColor} />
+          <line x1={-12.5} y1={0} x2={12.5} y2={0} stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
+        </g>
+      );
 
     case 'mech_support':
       return (
@@ -317,6 +325,14 @@ export const renderSymbolOnCanvas = (
         <g>
           <rect x={-15} y={-15} width={30} height={30} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} rx={2} />
           <text x={0} y={4} fontSize={14} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">m</text>
+        </g>
+      );
+
+    case 'mech_weight_circle':
+      return (
+        <g>
+          <circle cx={0} cy={0} r={15} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} />
+          <text x={0} y={4} fontSize={12} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">mc</text>
         </g>
       );
 
