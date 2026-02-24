@@ -43,6 +43,14 @@ function calcConnectionPoints(comp: CircuitComponent): Point[] {
     return [{ x: comp.x, y: comp.y }];
   }
 
+  if (comp.type === 'wire_jumper') {
+    const len = comp.value ? parseFloat(comp.value.split(',')[0] || '60') : 60;
+    return [
+      { x: comp.x, y: comp.y },
+      { x: Math.round(comp.x + len * cos), y: Math.round(comp.y + len * sin) },
+    ];
+  }
+
   if (comp.type === 'variable_resistor') {
     const dxRes = 40;
     // Slider C is offset by 15 units perpendicularly to the main axis

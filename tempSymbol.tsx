@@ -293,14 +293,6 @@ export const renderSymbolOnCanvas = (
           <line x1={-2} y1={18} x2={2} y2={18} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
-    case 'wire_jumper':
-      return (
-        <g>
-          <circle cx={-15} cy={0} r={2.5} fill={strokeColor} />
-          <line x1={-12.5} y1={0} x2={12.5} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
-        </g>
-      );
 
     case 'mech_support':
       return (
@@ -325,14 +317,6 @@ export const renderSymbolOnCanvas = (
         <g>
           <rect x={-15} y={-15} width={30} height={30} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} rx={2} />
           <text x={0} y={4} fontSize={14} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">m</text>
-        </g>
-      );
-
-    case 'mech_weight_circle':
-      return (
-        <g>
-          <circle cx={0} cy={0} r={15} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={4} fontSize={12} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">mc</text>
         </g>
       );
 
@@ -449,62 +433,7 @@ export const renderSymbolOnCanvas = (
         </g>
       );
 
-    case 'wire_jumper': {
-      const jumperLen = value ? parseFloat(value.split(',')[0] || '60') : 60;
-      return (
-        <g>
-          <line x1={0} y1={0} x2={jumperLen} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          {/* We might add small dots on the ends if we want, but jumper is usually just a line */}
-        </g>
-      );
-    }
-
     default:
       return <rect x={-hw} y={-hh} width={size} height={hh * 2} fill="none" stroke={strokeColor} strokeWidth={sw} />;
-  }
-};
-
-export const getPulleyKinematics = (params: string[], isMovable: boolean) => {
-  const R = 22;
-  const p0 = parseFloat(params[0]); const lenL = isNaN(p0) ? 25 : p0;
-  const p1 = parseFloat(params[1]); const lenR = isNaN(p1) ? lenL : p1;
-
-  if (isMovable) {
-    const p2 = parseFloat(params[2]); const lenB = isNaN(p2) ? 22 : p2;
-    const p3 = parseFloat(params[3]); const angL = isNaN(p3) ? 0 : p3;
-    const p4 = parseFloat(params[4]); const angR = isNaN(p4) ? 0 : p4;
-    const p5 = parseFloat(params[5]); const angB = isNaN(p5) ? 0 : p5;
-    const radL = (angL * Math.PI) / 180;
-    const radR = (angR * Math.PI) / 180;
-    const radB = (angB * Math.PI) / 180;
-
-    const tL = { x: -R * Math.cos(radL), y: R * Math.sin(radL) };
-    const pL = { x: tL.x - lenL * Math.sin(radL), y: tL.y - lenL * Math.cos(radL) };
-
-    const tR = { x: R * Math.cos(radR), y: R * Math.sin(radR) };
-    const pR = { x: tR.x + lenR * Math.sin(radR), y: tR.y - lenR * Math.cos(radR) };
-
-    const pB = { x: lenB * Math.sin(radB), y: lenB * Math.cos(radB) };
-
-    return { pL, pR, pM: pB, tL, tR };
-  } else {
-    // Fixed Pulley
-    const p2 = parseFloat(params[2]); const angL = isNaN(p2) ? 0 : p2;
-    const p3 = parseFloat(params[3]); const angR = isNaN(p3) ? 0 : p3;
-    const p4 = parseFloat(params[4]); const lenT = isNaN(p4) ? 35 : p4;
-    const p5 = parseFloat(params[5]); const angT = isNaN(p5) ? 0 : p5;
-    const radL = (angL * Math.PI) / 180;
-    const radR = (angR * Math.PI) / 180;
-    const radT = (angT * Math.PI) / 180;
-
-    const tL = { x: -R * Math.cos(radL), y: -R * Math.sin(radL) };
-    const pL = { x: tL.x - lenL * Math.sin(radL), y: tL.y + lenL * Math.cos(radL) };
-
-    const tR = { x: R * Math.cos(radR), y: -R * Math.sin(radR) };
-    const pR = { x: tR.x + lenR * Math.sin(radR), y: tR.y + lenR * Math.cos(radR) };
-
-    const pT = { x: lenT * Math.sin(radT), y: -lenT * Math.cos(radT) };
-
-    return { pL, pR, pM: pT, tL, tR };
   }
 };

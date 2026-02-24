@@ -32,7 +32,7 @@ interface Props {
   pushHistory: () => void;
   setComponentLabel: (id: string, label: string) => void;
   updateComponentValue: (id: string, value: string) => void;
-  moveLabel: (id: string, dx: number, dy: number) => void;
+  moveLabel: (id: string, x: number, y: number) => void;
   globalStrokeWidth: number;
   mode: 'select' | 'wire';
   hideNodes: boolean;
@@ -86,6 +86,7 @@ export const CircuitCanvas: React.FC<Props> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number; isGroup: boolean } | null>(null);
+  const [resizing, setResizing] = useState<{ id: string; type: 'scale' | 'length' | 'angle' | 'string_end'; startX: number; startY: number; initialValue: string; handle: string } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [rawMousePos, setRawMousePos] = useState<Point>({ x: 0, y: 0 });
@@ -95,7 +96,6 @@ export const CircuitCanvas: React.FC<Props> = ({
   const [wireClickedOnWire, setWireClickedOnWire] = useState<{ wireId: string; point: Point } | null>(null);
   const [junctionLabelInput, setJunctionLabelInput] = useState<{ wireId: string; compId: string | null; point: Point; x: number; y: number } | null>(null);
   const [componentValueInput, setComponentValueInput] = useState<{ compId: string; initialValue: string; x: number; y: number } | null>(null);
-  const [resizing, setResizing] = useState<{ id: string; type: 'scale' | 'length' | 'angle' | 'string_end'; startX: number; startY: number; initialValue: string; handle: string } | null>(null);
 
   // Dragging state
   const [draggingWirePoint, setDraggingWirePoint] = useState<{ wireId: string; pointIndex: number } | null>(null);
@@ -240,14 +240,12 @@ export const CircuitCanvas: React.FC<Props> = ({
         const dx = point.x - resizing.startX;
         const dy = point.y - resizing.startY;
 
-        if (cType.includes('vector') || cType === 'wire_jumper') {
+        if (cType.includes('vector')) {
           // Vector uses val2 for length
-          const isWire = cType === 'wire_jumper';
-          const paramIdx = isWire ? 0 : 1;
-          if (params.length < (isWire ? 1 : 2)) params[paramIdx] = "";
-          const initialLen = parseFloat(params[paramIdx]) || (isWire ? 60 : 40);
-          const newLen = Math.max(isWire ? 10 : 20, initialLen + dx);
-          params[paramIdx] = Math.round(newLen).toString();
+          if (params.length < 2) params[1] = "";
+          const initialLen = parseFloat(params[1]) || 40;
+          const newLen = Math.max(20, initialLen + dx);
+          params[1] = Math.round(newLen).toString();
         } else if (cType.includes('trajectory')) {
           if (resizing.handle === 'height_traj') {
             if (params.length < 2) params[1] = "";
@@ -357,12 +355,14 @@ export const CircuitCanvas: React.FC<Props> = ({
         if (params.length < 2) params[1] = "1";
         const initialScale = parseFloat(params[1]) || 1;
 
+        // Calculate scale based on distance from component center (comp.x, comp.y)
+        // Note: resizing.startX/Y are in SVG coords. We need to find the component's center.
         if (comp) {
           const center = { x: comp.x, y: comp.y };
           const initialDist = Math.hypot(resizing.startX - center.x, resizing.startY - center.y);
           const currentDist = Math.hypot(point.x - center.x, point.y - center.y);
 
-          if (initialDist > 5) {
+          if (initialDist > 5) { // Avoid division by zero or extreme sensitivity near center
             const ratio = currentDist / initialDist;
             const newScale = Math.max(0.2, Math.min(5, initialScale * ratio));
             params[1] = newScale.toFixed(2);
@@ -372,6 +372,8 @@ export const CircuitCanvas: React.FC<Props> = ({
       } else if (resizing.type === 'angle') {
         const initialAngle = parseFloat(params[0]) || (cType.includes('cart') ? 0 : 30);
         const dy = point.y - resizing.startY;
+        // Drag up (negative dy) increases angle. Drag down decreases.
+        // For cart we allow -80 to 80. For inclined plane 10 to 80.
         const minAngle = cType.includes('cart') ? -80 : 10;
         const newAngle = Math.max(minAngle, Math.min(80, initialAngle - dy));
         params[0] = Math.round(newAngle).toString();
@@ -568,32 +570,30 @@ export const CircuitCanvas: React.FC<Props> = ({
   }, []);
 
   const handleComponentMouseDown = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
-    e.stopPropagation();
     if (mode === 'select') {
-      const isAlreadySelected = selectedIds.includes(comp.id);
-      if (!isAlreadySelected && !e.shiftKey) {
-        onSelectComponent(comp.id, false);
-      } else if (e.shiftKey) {
-        onSelectComponent(comp.id, true);
-      }
+      e.stopPropagation();
       const point = getSVGPoint(e.clientX, e.clientY);
-      pushHistory();
-      const isGroup = selectedIds.includes(comp.id) && selectedIds.length > 1;
-      setDragging({
-        id: comp.id,
-        offsetX: point.x - comp.x,
-        offsetY: point.y - comp.y,
-        startX: comp.x,
-        startY: comp.y,
-        isGroup: isGroup || (isAlreadySelected && selectedIds.length > 1),
-      });
+      const isMulti = e.ctrlKey || e.metaKey;
+      onSelectComponent(comp.id, isMulti);
+
+      const isSelected = selectedIds.includes(comp.id);
+      if (isSelected || isMulti) {
+        setDragging({
+          id: comp.id,
+          offsetX: point.x - comp.x,
+          offsetY: point.y - comp.y,
+          startX: comp.x,
+          startY: comp.y,
+          isGroup: selectedIds.length > 1 || isMulti
+        });
+      }
     }
-  }, [mode, getSVGPoint, onSelectComponent, selectedIds, pushHistory]);
+  }, [mode, getSVGPoint, onSelectComponent, selectedIds]);
 
   const handleResizeHandleMouseDown = useCallback((e: React.MouseEvent, comp: CircuitComponent, type: 'scale' | 'length' | 'angle' | 'string_end', handleId: string) => {
     e.stopPropagation();
     const point = getSVGPoint(e.clientX, e.clientY);
-    pushHistory();
+    pushHistory(); // Add pushHistory here
     setResizing({
       id: comp.id,
       type,
@@ -686,18 +686,27 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleJunctionLabelSubmit = useCallback((label: string) => {
     if (junctionLabelInput && label.trim()) {
       if (junctionLabelInput.compId) {
-        // Renaming an existing junction
-        setComponentLabel(junctionLabelInput.compId, label.trim().toUpperCase());
+        const comp = components.find(c => c.id === junctionLabelInput.compId);
+        if (comp && comp.type === 'junction') {
+          // Renaming an existing junction
+          setComponentLabel(junctionLabelInput.compId, label.trim().toUpperCase());
+        } else {
+          // Renaming other components
+          setComponentLabel(junctionLabelInput.compId, label.trim());
+        }
       } else {
         // Adding a new junction on a wire
         onAddJunctionOnWire(junctionLabelInput.wireId, junctionLabelInput.point, label.trim().toUpperCase());
       }
     }
     setJunctionLabelInput(null);
-  }, [junctionLabelInput, onAddJunctionOnWire, setComponentLabel]);
+  }, [junctionLabelInput, onAddJunctionOnWire, setComponentLabel, components]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if inside an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
       if (e.key === 'Escape') {
         onCancelWire();
         onClearSelection();
@@ -752,7 +761,7 @@ export const CircuitCanvas: React.FC<Props> = ({
       }
       // If slope is near vertical
       else if (dx < 25 && dy > 25) {
-        end = { x: lastPoint.x, y: end.y };
+        end = { x: lastPoint.x, y: lastPoint.y };
       }
     }
 
@@ -953,7 +962,24 @@ export const CircuitCanvas: React.FC<Props> = ({
                   transform={`translate(${comp.x}, ${comp.y}) rotate(${comp.rotation})`}
                   style={{ cursor: mode === 'select' ? 'move' : 'default' }}
                   onMouseDown={(e) => handleComponentMouseDown(e, comp)}
-                  onDoubleClick={(e) => handleComponentDblClick(e, comp)}
+                  onContextMenu={(e) => {
+                    handleNodeContextMenu(e, { x: comp.x, y: comp.y }, comp.id);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const screenPos = getScreenPos({ x: comp.x, y: comp.y });
+                    if (['mech_inclined_plane', 'mech_cart', 'mech_spring', 'mech_pendulum', 'mech_vector', 'mech_axis', 'mech_trajectory', 'mech_lever'].includes(comp.type)) {
+                      setComponentValueInput({
+                        compId: comp.id,
+                        initialValue: comp.value || '',
+                        x: screenPos.x,
+                        y: screenPos.y,
+                      });
+                    } else {
+                      handleComponentDblClick(e, comp); // Fallback for junction logic
+                    }
+                  }}
                 >
                   {/* Invisible hit area */}
                   {isPointLike ? (
@@ -970,8 +996,8 @@ export const CircuitCanvas: React.FC<Props> = ({
                     <circle cx={0} cy={0} r={12} fill="none" stroke="hsl(var(--component-selected))" strokeWidth={1.5} strokeDasharray="4 2" />
                   )}
 
-                  {/* Lead extensions from symbol (±30) to connection points (±40) */}
-                  {!isPointLike && !comp.type.startsWith('mech_') && comp.type !== 'wire_jumper' && (
+                  {/* Lead extensions from symbol (±30) to connection points (±40) - hide for mechanic */}
+                  {!isPointLike && !comp.type.startsWith('mech_') && (
                     <>
                       <line x1={-30} y1={0} x2={-40} y2={0} stroke={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)'} strokeWidth={2} />
                       <line x1={30} y1={0} x2={40} y2={0} stroke={isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)'} strokeWidth={2} />
@@ -982,7 +1008,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {renderSymbolOnCanvas(
                     comp.type,
                     isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)',
-                    2, 60
+                    globalStrokeWidth, 60, comp.value
                   )}
 
                   {/* Label - show for junctions always, for other components only when showLabels is on */}
@@ -1002,11 +1028,11 @@ export const CircuitCanvas: React.FC<Props> = ({
                     </text>
                   )}
 
-                  {/* Resizing Handles for Mechanical & Wire Jumper */}
-                  {isSelected && (comp.type.startsWith('mech_') || comp.type === 'wire_jumper') && (
+                  {/* Resizing Handles for Mechanical (when selected) */}
+                  {isSelected && comp.type.startsWith('mech_') && (
                     <g>
                       {/* Corner Handles for Scale */}
-                      {comp.type.startsWith('mech_') && comp.type !== 'mech_vector' && comp.type !== 'mech_trajectory' && comp.type !== 'mech_pulley_fixed' && [
+                      {comp.type !== 'mech_vector' && comp.type !== 'mech_trajectory' && comp.type !== 'mech_pulley_fixed' && [
                         { id: 'tl', x: -45, y: -22 },
                         { id: 'tr', x: 45, y: -22 },
                         { id: 'bl', x: -45, y: 22 },
@@ -1067,10 +1093,10 @@ export const CircuitCanvas: React.FC<Props> = ({
                         />
                       )}
 
-                      {/* Length Handle for Force Vector and Wire Jumper */}
-                      {(comp.type === 'mech_vector' || comp.type === 'wire_jumper') && (
+                      {/* Length Handle for Force Vector */}
+                      {comp.type === 'mech_vector' && (
                         <circle
-                          cx={comp.type === 'wire_jumper' ? (comp.value ? parseFloat(comp.value.split(',')[0] || '60') : 60) : (comp.value ? parseFloat(comp.value.split(',')[1] || '40') : 40)}
+                          cx={comp.value ? parseFloat(comp.value.split(',')[1] || '40') : 40}
                           cy={0}
                           r={6}
                           fill="hsl(var(--component-selected))"
@@ -1323,38 +1349,131 @@ export const CircuitCanvas: React.FC<Props> = ({
               Xóa điểm (làm thẳng)
             </button>
           )}
-          {nodeContextMenu.compId && components.find(c => c.id === nodeContextMenu.compId)?.type === 'junction' && (
-            <button
-              className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectComponent(nodeContextMenu.compId!, false);
-                pushHistory();
-                setTimeout(() => {
-                  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
-                }, 50);
-                setNodeContextMenu(null);
-              }}
-            >
-              Xóa điểm
-            </button>
-          )}
-          <button
-            className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              setJunctionLabelInput({
-                wireId: nodeContextMenu.wireId || '', // Not needed for general labels but passed anyway
-                compId: nodeContextMenu.compId,
-                point: nodeContextMenu.point,
-                x: nodeContextMenu.x,
-                y: nodeContextMenu.y,
-              });
-              setNodeContextMenu(null);
-            }}
-          >
-            Đặt tên điểm
-          </button>
+
+          {(() => {
+            const comp = components.find(c => c.id === nodeContextMenu.compId);
+            let specificItems = null;
+            let reversibleItems = null;
+
+            if (comp?.type === 'mech_inclined_plane') {
+              const params = comp.value ? comp.value.split(',').map(s => s.trim()) : ['30', '1'];
+              const currentAngle = params[0] || '30';
+              const currentScale = params[1] || '1';
+              specificItems = (
+                <>
+                  <button
+                    className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateComponentValue(comp.id, `${currentAngle}, ${currentScale}, ?`);
+                      setNodeContextMenu(null);
+                    }}
+                  >
+                    Đổi góc thành "?"
+                  </button>
+                  <button
+                    className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateComponentValue(comp.id, `${currentAngle}, ${currentScale}, hidden`);
+                      setNodeContextMenu(null);
+                    }}
+                  >
+                    Ẩn số đo góc
+                  </button>
+                  <button
+                    className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateComponentValue(comp.id, `${currentAngle}, ${currentScale}`);
+                      setNodeContextMenu(null);
+                    }}
+                  >
+                    Hiển thị số góc
+                  </button>
+                </>
+              );
+            }
+
+            const isReversible = ['switch_open', 'switch_closed', 'ammeter', 'voltmeter', 'battery_single', 'battery', 'diode', 'led', 'motor', 'generator'].includes(comp?.type || '');
+            if (isReversible && comp) {
+              const hasRev = comp.value?.includes('rev') || comp.value?.includes('reverse');
+              reversibleItems = (
+                <button
+                  className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap text-blue-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const params = comp.value ? comp.value.split(',').map(s => s.trim()) : [];
+                    let newParams;
+                    if (hasRev) {
+                      newParams = params.filter(p => !['rev', 'reverse'].includes(p));
+                    } else {
+                      newParams = [...params, 'rev'];
+                    }
+                    updateComponentValue(comp.id, newParams.join(', '));
+                    setNodeContextMenu(null);
+                  }}
+                >
+                  Đảo chiều ({hasRev ? "Âm" : "Dương"})
+                </button>
+              );
+            }
+
+            return (
+              <>
+                {specificItems}
+                {reversibleItems}
+                {nodeContextMenu.compId && comp?.type === 'junction' && (
+                  <button
+                    className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectComponent(nodeContextMenu.compId!, false);
+                      pushHistory();
+                      setTimeout(() => {
+                        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+                      }, 50);
+                      setNodeContextMenu(null);
+                    }}
+                  >
+                    Xóa điểm
+                  </button>
+                )}
+                {nodeContextMenu.compId && (
+                  <>
+                    <button
+                      className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground w-full whitespace-nowrap"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setJunctionLabelInput({
+                          wireId: nodeContextMenu.wireId || '',
+                          compId: nodeContextMenu.compId,
+                          point: nodeContextMenu.point,
+                          x: nodeContextMenu.x,
+                          y: nodeContextMenu.y,
+                        });
+                        setNodeContextMenu(null);
+                      }}
+                    >
+                      {comp?.type === 'junction' ? 'Đặt tên điểm' : 'Đổi tên linh kiện'}
+                    </button>
+                    {comp?.label && (
+                      <button
+                        className="flex items-center px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive w-full whitespace-nowrap"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setComponentLabel(nodeContextMenu.compId!, '');
+                          setNodeContextMenu(null);
+                        }}
+                      >
+                        {comp?.type === 'junction' ? 'Xóa tên điểm' : 'Xóa tên linh kiện'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
