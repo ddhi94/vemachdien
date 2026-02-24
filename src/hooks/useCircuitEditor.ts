@@ -255,7 +255,11 @@ export function useCircuitEditor() {
         ptMap.push({ old: oldPts[i], new: newPts[i] });
       }
 
-      setWires(prevWires => updateWiresWithOrthogonalRouting(prevWires, ptMap));
+      setWires(prevWires => {
+        // Skip wire rerouting for wire_jumper — it's a standalone component
+        if (oldComp.type === 'wire_jumper') return prevWires;
+        return updateWiresWithOrthogonalRouting(prevWires, ptMap);
+      });
 
       // 1. Stickiness logic for wire_jumper:
       // If any jumper wire end is at an old terminal of this component, update the jumper.
