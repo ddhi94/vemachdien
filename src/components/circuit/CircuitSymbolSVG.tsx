@@ -307,12 +307,27 @@ export const renderSymbolOnCanvas = (
         </g>
       );
 
-    case 'mech_spring':
+    case 'mech_spring': {
+      const springParams = value ? value.split(',').map(s => s.trim()) : [];
+      const springLen = parseFloat(springParams[0]) || 60;
+      const halfLen = springLen / 2;
+      // Build zigzag path dynamically
+      const coils = 6;
+      const coilWidth = springLen / (coils + 1);
+      const amplitude = 5;
+      let springPath = `M ${-halfLen} 0`;
+      for (let i = 0; i < coils; i++) {
+        const xStart = -halfLen + (i + 0.5) * coilWidth;
+        const ySign = i % 2 === 0 ? -1 : 1;
+        springPath += ` L ${xStart} ${ySign * amplitude}`;
+      }
+      springPath += ` L ${halfLen} 0`;
       return (
         <g>
-          <path d="M -20 0 L -18 -4 L -14 4 L -10 -4 L -6 4 L -2 -4 L 2 4 L 6 -4 L 10 4 L 14 -4 L 18 4 L 20 0" fill="none" stroke={strokeColor} strokeWidth={sw} strokeLinejoin="round" />
+          <path d={springPath} fill="none" stroke={strokeColor} strokeWidth={sw} strokeLinejoin="round" />
         </g>
       );
+    }
 
     case 'mech_block':
       return (
@@ -374,17 +389,20 @@ export const renderSymbolOnCanvas = (
         </g>
       );
 
-    case 'mech_pendulum':
+    case 'mech_pendulum': {
+      const pendParams = value ? value.split(',').map(s => s.trim()) : [];
+      const pendLen = parseFloat(pendParams[0]) || 50;
       return (
         <g>
           <line x1={-15} y1={0} x2={15} y2={0} stroke={strokeColor} strokeWidth={sw} />
           {[-12, -6, 0, 6, 12].map((x, i) => (
             <line key={i} x1={x} y1={0} x2={x + 3} y2={-5} stroke={strokeColor} strokeWidth={1} />
           ))}
-          <line x1={0} y1={0} x2={0} y2={40} stroke={strokeColor} strokeWidth={1} />
-          <circle cx={0} cy={40} r={8} fill="#94a3b8" stroke={strokeColor} strokeWidth={sw} />
+          <line x1={0} y1={0} x2={0} y2={pendLen} stroke={strokeColor} strokeWidth={1} />
+          <circle cx={0} cy={pendLen} r={8} fill="#94a3b8" stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
+    }
 
     case 'mech_cart':
       return (
