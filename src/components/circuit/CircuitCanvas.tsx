@@ -1016,7 +1016,8 @@ export const CircuitCanvas: React.FC<Props> = ({
                     comp.type,
                     isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)',
                     2, 60,
-                    comp.value
+                    comp.value,
+                    hideNodes
                   )}
 
                   {/* Label - show for junctions always, for other components only when showLabels is on */}

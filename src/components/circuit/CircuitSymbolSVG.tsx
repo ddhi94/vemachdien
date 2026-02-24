@@ -35,7 +35,8 @@ export const renderSymbolOnCanvas = (
   strokeColor: string = 'hsl(215, 30%, 20%)',
   sw: number = 2,
   size: number = 60,
-  value?: string
+  value?: string,
+  hideNodes?: boolean
 ): React.ReactNode => {
   const hw = size / 2;
   const hh = size / 4;
@@ -461,12 +462,15 @@ export const renderSymbolOnCanvas = (
         <g>
           {/* Main wire line — stretches between the two terminals */}
           <line x1={0} y1={0} x2={jumperLen} y2={0} stroke={strokeColor} strokeWidth={sw + 1} strokeLinecap="round" />
-          {/* Terminal 1 (start) — round node */}
-          <circle cx={0} cy={0} r={8} fill="none" stroke={strokeColor} strokeWidth={1} opacity={0.25} />
-          <circle cx={0} cy={0} r={5} fill={strokeColor} />
-          {/* Terminal 2 (end) — round node */}
-          <circle cx={jumperLen} cy={0} r={8} fill="none" stroke={strokeColor} strokeWidth={1} opacity={0.25} />
-          <circle cx={jumperLen} cy={0} r={5} fill={strokeColor} />
+          {/* Terminal circles — hidden when hideNodes is on */}
+          {!hideNodes && (
+            <>
+              <circle cx={0} cy={0} r={8} fill="none" stroke={strokeColor} strokeWidth={1} opacity={0.25} />
+              <circle cx={0} cy={0} r={5} fill={strokeColor} />
+              <circle cx={jumperLen} cy={0} r={8} fill="none" stroke={strokeColor} strokeWidth={1} opacity={0.25} />
+              <circle cx={jumperLen} cy={0} r={5} fill={strokeColor} />
+            </>
+          )}
         </g>
       );
     }
