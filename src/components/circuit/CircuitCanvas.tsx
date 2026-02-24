@@ -1238,7 +1238,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                       cy={cp.y}
                       r={isHovered ? 7 : 4}
                       fill={isHovered ? 'hsl(var(--component-selected))' : 'hsl(var(--node-color))'}
-                      opacity={isHovered ? 0.9 : (isMechComp ? 0 : 0.5)}
+                      opacity={isHovered ? 0.9 : (isMechComp && comp.type !== 'wire_jumper' ? 0 : 0.5)}
                       style={{ cursor: 'move', transition: 'r 0.15s, opacity 0.15s' }}
                       onMouseDown={(e) => {
                         e.stopPropagation();
