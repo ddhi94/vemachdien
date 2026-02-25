@@ -313,15 +313,17 @@ export const renderSymbolOnCanvas = (
       const springParams = value ? value.split(',').map(s => s.trim()) : [];
       const springLen = parseFloat(springParams[0]) || 60;
       const halfLen = springLen / 2;
-      // Build zigzag path dynamically
+      const straightLen = Math.min(15, springLen * 0.15); // Max 15px straight part
+      const coilSectionLen = Math.max(0, springLen - 2 * straightLen);
+      let springPath = `M ${-halfLen} 0 L ${-halfLen + straightLen} 0`;
       const coils = 6;
-      const coilWidth = springLen / (coils + 1);
-      const amplitude = 5;
-      let springPath = `M ${-halfLen} 0`;
-      for (let i = 0; i < coils; i++) {
-        const xStart = -halfLen + (i + 0.5) * coilWidth;
-        const ySign = i % 2 === 0 ? -1 : 1;
-        springPath += ` L ${xStart} ${ySign * amplitude}`;
+      const step = coilSectionLen / (coils * 2);
+      const amplitude = 6;
+      let cx = -halfLen + straightLen;
+      for (let i = 0; i < coils * 2; i++) {
+        cx += step;
+        const cy = (i % 2 === 0) ? -amplitude : amplitude;
+        springPath += ` L ${cx} ${cy}`;
       }
       springPath += ` L ${halfLen} 0`;
       return (
@@ -425,6 +427,8 @@ export const renderSymbolOnCanvas = (
       const ipParams = value ? value.split(',').map(s => s.trim()) : [];
       const angle = parseFloat(ipParams[0]) || 30;
       const ipScale = parseFloat(ipParams[1]) || 1;
+      const angleDisplay = ipParams[2] || 'bottom'; // 'bottom', 'top', 'none'
+
       const angleRad = (angle * Math.PI) / 180;
       const baseLen = 60;
       const height = baseLen * Math.tan(angleRad);
@@ -432,12 +436,37 @@ export const renderSymbolOnCanvas = (
       const drawBase = baseLen * autoScale;
       const drawHeight = height * autoScale;
 
+      const arcR = Math.min(15, drawBase * 0.8, Math.hypot(drawBase, drawHeight) * 0.4);
+
+      // Bottom angle geometry
+      const blX = -drawBase / 2;
+      const blY = drawHeight / 2;
+      const bottomArcPath = `M ${blX + arcR} ${blY} A ${arcR} ${arcR} 0 0 0 ${blX + arcR * Math.cos(angleRad)} ${blY - arcR * Math.sin(angleRad)}`;
+
+      // Top angle geometry
+      const tX = drawBase / 2;
+      const tY = -drawHeight / 2;
+      const topAngleRad = Math.PI / 2 - angleRad;
+      const topArcPath = `M ${tX} ${tY + arcR} A ${arcR} ${arcR} 0 0 1 ${tX - arcR * Math.sin(topAngleRad)} ${tY + arcR * Math.cos(topAngleRad)}`;
+
       return (
         <g transform={`scale(${ipScale})`}>
           <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
-          <polygon points={`${-drawBase / 2},${drawHeight / 2} ${drawBase / 2},${drawHeight / 2} ${drawBase / 2},${-drawHeight / 2}`} fill="#f8fafc" stroke={strokeColor} strokeWidth={sw} strokeLinejoin="round" />
-          <path d={`M ${-drawBase / 2 + 15} ${drawHeight / 2} A 15 15 0 0 0 ${-drawBase / 2 + 15 * Math.cos(angleRad)} ${drawHeight / 2 - 15 * Math.sin(angleRad)}`} fill="none" stroke={strokeColor} strokeWidth={1} />
-          <text x={-drawBase / 2 + 20} y={drawHeight / 2 - 5} fontSize={10} fill={strokeColor} fontStyle="italic">{angle}°</text>
+          <polygon points={`${blX},${blY} ${tX},${blY} ${tX},${tY}`} fill="#f8fafc" stroke={strokeColor} strokeWidth={sw} strokeLinejoin="round" />
+
+          {angleDisplay !== 'none' && angleDisplay !== 'top' && (
+            <>
+              <path d={bottomArcPath} fill="none" stroke={strokeColor} strokeWidth={1} />
+              <text x={blX + arcR + 4} y={blY - 4} fontSize={Math.max(8, arcR * 0.8)} fill={strokeColor} fontStyle="italic">{parseFloat(angle.toFixed(1))}°</text>
+            </>
+          )}
+
+          {angleDisplay === 'top' && (
+            <>
+              <path d={topArcPath} fill="none" stroke={strokeColor} strokeWidth={1} />
+              <text x={tX - arcR / 2 - 4} y={tY + arcR + 10} fontSize={Math.max(8, arcR * 0.8)} fill={strokeColor} fontStyle="italic" textAnchor="end">{parseFloat((90 - angle).toFixed(1))}°</text>
+            </>
+          )}
         </g>
       );
     }
@@ -445,8 +474,9 @@ export const renderSymbolOnCanvas = (
     case 'mech_pendulum': {
       const pendParams = value ? value.split(',').map(s => s.trim()) : [];
       const pendLen = parseFloat(pendParams[0]) || 50;
+      const pendScale = parseFloat(pendParams[1]) || 1;
       return (
-        <g>
+        <g transform={`scale(${pendScale})`}>
           <line x1={-15} y1={0} x2={15} y2={0} stroke={strokeColor} strokeWidth={sw} />
           {[-12, -6, 0, 6, 12].map((x, i) => (
             <line key={i} x1={x} y1={0} x2={x + 3} y2={-5} stroke={strokeColor} strokeWidth={1} />
