@@ -22,7 +22,7 @@ interface Props {
   onUpdateComponentRotation: (id: string, rotation: number) => void;
   onClearSelection: () => void;
   onStartWire: (p: Point) => void;
-  onFinishWire: (endPoint?: Point) => void;
+  onFinishWire: (endPoint?: Point, direction?: 'horizontal' | 'vertical') => void;
   onCancelWire: () => void;
   onZoom: (delta: number) => void;
   onAddJunctionOnWire: (wireId: string, point: Point, label: string) => void;
@@ -96,6 +96,9 @@ export const CircuitCanvas: React.FC<Props> = ({
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const [hoveredNode, setHoveredNode] = useState<{ compId: string; point: Point } | null>(null);
   const [wireDrawing, setWireDrawing] = useState(false);
+  const [wireDirection, setWireDirection] = useState<'horizontal' | 'vertical'>('horizontal');
+  const wireDirectionRef = useRef<'horizontal' | 'vertical'>('horizontal');
+  const wireDirectionLocked = useRef(false);
   const [wireClickedOnWire, setWireClickedOnWire] = useState<{ wireId: string; point: Point } | null>(null);
   const [junctionLabelInput, setJunctionLabelInput] = useState<{ wireId: string; compId: string | null; point: Point; x: number; y: number } | null>(null);
   const [componentValueInput, setComponentValueInput] = useState<{ compId: string; initialValue: string; x: number; y: number } | null>(null);
@@ -199,19 +202,23 @@ export const CircuitCanvas: React.FC<Props> = ({
       const point = getSVGPoint(e.clientX, e.clientY);
       if (drawingWire) {
         if (snapTarget) {
-          onFinishWire(snapTarget.point);
+          onFinishWire(snapTarget.point, wireDirectionRef.current);
+          wireDirectionLocked.current = false;
         } else {
           const snap = findNearestConnectionPoint(point, 30);
           if (snap) {
-            onFinishWire(snap.point);
+            onFinishWire(snap.point, wireDirectionRef.current);
+            wireDirectionLocked.current = false;
           } else {
             onCancelWire();
+            wireDirectionLocked.current = false;
           }
         }
       } else {
         const snap = findNearestConnectionPoint(point, 30);
         if (snap) {
           onStartWire(snap.point);
+          wireDirectionLocked.current = false;
         }
       }
       return;
@@ -225,7 +232,7 @@ export const CircuitCanvas: React.FC<Props> = ({
         setMarquee({ startX: point.x, startY: point.y, currentX: point.x, currentY: point.y });
       }
     }
-  }, [mode, pan, getSVGPoint, drawingWire, snapTarget, onStartWire, onFinishWire, onCancelWire, onClearSelection, findNearestConnectionPoint, junctionLabelInput]);
+  }, [mode, pan, getSVGPoint, drawingWire, snapTarget, onStartWire, onFinishWire, onCancelWire, onClearSelection, findNearestConnectionPoint, junctionLabelInput, wireDirection]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const point = getSVGPoint(e.clientX, e.clientY);
@@ -327,7 +334,7 @@ export const CircuitCanvas: React.FC<Props> = ({
             if (!params[i] || params[i].trim() === '') {
               if (i === 0) params[i] = "25";
               if (i === 1) params[i] = params[0] || "25";
-              if (i === 2 && cType === 'mech_pulley_movable') params[i] = "22";
+              if (i === 2 && cType === 'mech_pulley_movable') params[i] = "30";
               if (i >= 2 && i < 6 && cType !== 'mech_pulley_movable') params[i] = "0";
               if (i >= 3 && i < 6 && cType === 'mech_pulley_movable') params[i] = "0";
             }
@@ -336,13 +343,13 @@ export const CircuitCanvas: React.FC<Props> = ({
         };
 
         if (resizing.handle === 'fixed_left') {
-          let R = 22;
+          let R = 16;
           let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
           let ang = Math.atan2(-L * localX - R * localY, -R * localX + L * localY) * 180 / Math.PI;
           safeSet(0, Math.round(L).toString());
           safeSet(2, Math.round(ang).toString());
         } else if (resizing.handle === 'fixed_right') {
-          let R = 22;
+          let R = 16;
           let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
           let ang = Math.atan2(L * localX - R * localY, R * localX + L * localY) * 180 / Math.PI;
           safeSet(1, Math.round(L).toString());
@@ -353,13 +360,13 @@ export const CircuitCanvas: React.FC<Props> = ({
           safeSet(4, Math.round(L).toString());
           safeSet(5, Math.round(ang).toString());
         } else if (resizing.handle === 'movable_left') {
-          let R = 22;
+          let R = 16;
           let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
           let ang = Math.atan2(-L * localX + R * localY, -R * localX - L * localY) * 180 / Math.PI;
           safeSet(0, Math.round(L).toString());
           safeSet(3, Math.round(ang).toString());
         } else if (resizing.handle === 'movable_right') {
-          let R = 22;
+          let R = 16;
           let L = Math.max(5, Math.sqrt(Math.max(0, localX * localX + localY * localY - R * R)));
           let ang = Math.atan2(L * localX + R * localY, R * localX - L * localY) * 180 / Math.PI;
           safeSet(1, Math.round(L).toString());
@@ -408,6 +415,21 @@ export const CircuitCanvas: React.FC<Props> = ({
       return;
     }
 
+    // Track wire direction in click-to-draw wire mode (lock after first significant movement)
+    if (mode === 'wire' && drawingWire && !wireDrawing && !wireDirectionLocked.current) {
+      const startPt = drawingWire[drawingWire.length - 1];
+      if (startPt) {
+        const adx = Math.abs(point.x - startPt.x);
+        const ady = Math.abs(point.y - startPt.y);
+        if (adx > 20 || ady > 20) {
+          const dir = ady > adx ? 'vertical' : 'horizontal';
+          setWireDirection(dir);
+          wireDirectionRef.current = dir;
+          wireDirectionLocked.current = true;
+        }
+      }
+    }
+
     if (mode === 'select' && !dragging && !marquee && !draggingWirePoint) {
       const near = findNearestConnectionPoint(point, 15);
       setHoveredNode(near);
@@ -427,6 +449,20 @@ export const CircuitCanvas: React.FC<Props> = ({
     }
 
     if (wireDrawing && drawingWire) {
+      // Lock direction on first significant movement from start point
+      if (!wireDirectionLocked.current) {
+        const startPt = drawingWire[drawingWire.length - 1];
+        if (startPt) {
+          const adx = Math.abs(point.x - startPt.x);
+          const ady = Math.abs(point.y - startPt.y);
+          if (adx > 20 || ady > 20) {
+            const dir = ady > adx ? 'vertical' : 'horizontal';
+            setWireDirection(dir);
+            wireDirectionRef.current = dir;
+            wireDirectionLocked.current = true;
+          }
+        }
+      }
       return;
     }
 
@@ -495,17 +531,18 @@ export const CircuitCanvas: React.FC<Props> = ({
 
     if (wireDrawing && drawingWire) {
       if (snapTarget) {
-        onFinishWire(snapTarget.point);
+        onFinishWire(snapTarget.point, wireDirectionRef.current);
       } else {
         const point = getSVGPoint(e.clientX, e.clientY);
         const snap = findNearestConnectionPoint(point, 30);
         if (snap) {
-          onFinishWire(snap.point);
+          onFinishWire(snap.point, wireDirectionRef.current);
         } else {
           onCancelWire();
         }
       }
       setWireDrawing(false);
+      wireDirectionLocked.current = false;
       return;
     }
 
@@ -550,9 +587,9 @@ export const CircuitCanvas: React.FC<Props> = ({
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     if (mode === 'wire' && drawingWire) {
       const point = getSVGPoint(e.clientX, e.clientY);
-      onFinishWire(point);
+      onFinishWire(point, wireDirectionRef.current);
     }
-  }, [mode, drawingWire, getSVGPoint, onFinishWire]);
+  }, [mode, drawingWire, getSVGPoint, onFinishWire, wireDirection]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); }, []);
 
@@ -574,6 +611,7 @@ export const CircuitCanvas: React.FC<Props> = ({
       if (mode === 'wire' || e.altKey) {
         onStartWire(compPoint);
         setWireDrawing(true);
+        wireDirectionLocked.current = false;
         setNodeContextMenu(null);
       }
     }
@@ -734,6 +772,7 @@ export const CircuitCanvas: React.FC<Props> = ({
         setComponentValueInput(null);
         setNodeContextMenu(null);
         setWireDrawing(false);
+        wireDirectionLocked.current = false;
         setDraggingWirePoint(null);
         setDraggingCompNode(null);
         setDraggingLabel(null);
@@ -794,11 +833,15 @@ export const CircuitCanvas: React.FC<Props> = ({
     const last = pts[pts.length - 1];
     const end = wirePreviewEnd;
     if (last.x !== end.x && last.y !== end.y) {
-      pts.push({ x: end.x, y: last.y });
+      if (wireDirection === 'vertical') {
+        pts.push({ x: last.x, y: end.y });
+      } else {
+        pts.push({ x: end.x, y: last.y });
+      }
     }
     pts.push(end);
     return pts;
-  }, [drawingWire, wirePreviewEnd]);
+  }, [drawingWire, wirePreviewEnd, wireDirection]);
 
   return (
     <>
@@ -1015,7 +1058,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {renderSymbolOnCanvas(
                     comp.type,
                     isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)',
-                    2, 60,
+                    globalStrokeWidth, 60,
                     comp.value,
                     hideNodes
                   )}
@@ -1041,7 +1084,7 @@ export const CircuitCanvas: React.FC<Props> = ({
                   {isSelected && (comp.type.startsWith('mech_') || comp.type === 'wire_jumper') && (
                     <g>
                       {/* Corner Handles for Scale */}
-                      {comp.type.startsWith('mech_') && comp.type !== 'mech_vector' && comp.type !== 'mech_trajectory' && comp.type !== 'mech_pulley_fixed' && [
+                      {comp.type.startsWith('mech_') && comp.type !== 'mech_vector' && comp.type !== 'mech_trajectory' && comp.type !== 'mech_pulley_fixed' && comp.type !== 'mech_pulley_movable' && comp.type !== 'mech_lever' && [
                         { id: 'tl', x: -45, y: -22 },
                         { id: 'tr', x: 45, y: -22 },
                         { id: 'bl', x: -45, y: 22 },

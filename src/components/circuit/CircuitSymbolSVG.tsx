@@ -352,31 +352,71 @@ export const renderSymbolOnCanvas = (
     }
 
     case 'mech_pulley_fixed': {
-      const pfScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
+      const pfParams = value ? value.split(',').map(s => s.trim()) : [];
+      const R = 16;
+      // params: lenL, lenR, angL, angR, lenT, angT
+      const pfLenL = parseFloat(pfParams[0]) || 25;
+      const pfLenR = parseFloat(pfParams[1]) || pfLenL;
+      const pfAngL = parseFloat(pfParams[2]) || 0;
+      const pfAngR = parseFloat(pfParams[3]) || 0;
+      const pfLenT = parseFloat(pfParams[4]) || 25;
+      const pfAngT = parseFloat(pfParams[5]) || 0;
+
+      const radL = (pfAngL * Math.PI) / 180;
+      const radR = (pfAngR * Math.PI) / 180;
+      const radT = (pfAngT * Math.PI) / 180;
+
+      // Fixed: left/right go DOWN, top goes UP
+      const tLx = -R * Math.cos(radL), tLy = -R * Math.sin(radL);
+      const eLx = tLx - pfLenL * Math.sin(radL), eLy = tLy + pfLenL * Math.cos(radL);
+      const tRx = R * Math.cos(radR), tRy = -R * Math.sin(radR);
+      const eRx = tRx + pfLenR * Math.sin(radR), eRy = tRy + pfLenR * Math.cos(radR);
+      const eTx = pfLenT * Math.sin(radT), eTy = -pfLenT * Math.cos(radT);
+
       return (
-        <g transform={`scale(${pfScale})`}>
+        <g>
           <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
-          <circle cx={0} cy={0} r={16} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={R} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={4} fill={strokeColor} />
-          <path d="M -16 0 A 16 16 0 0 1 16 0" fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
-          <line x1={-16} y1={0} x2={-16} y2={25} stroke={strokeColor} strokeWidth={1.5} />
-          <line x1={16} y1={0} x2={16} y2={25} stroke={strokeColor} strokeWidth={1.5} />
-          <path d="M 0 0 L 0 -16 M -8 -16 L 8 -16 M -4 -20 L -8 -16 M 0 -20 L -4 -16 M 4 -20 L 0 -16 M 8 -20 L 4 -16" stroke={strokeColor} strokeWidth={sw} />
+          <path d={`M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0`} fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
+          <line x1={tLx} y1={tLy} x2={eLx} y2={eLy} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={tRx} y1={tRy} x2={eRx} y2={eRy} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={0} y1={-R} x2={eTx} y2={eTy} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
     }
 
     case 'mech_pulley_movable': {
-      const pmScale = value ? parseFloat((value.split(',')[1] || '1').trim()) || 1 : 1;
+      const pmParams = value ? value.split(',').map(s => s.trim()) : [];
+      const R = 16;
+      // params: lenL, lenR, lenB, angL, angR, angB
+      const pmLenL = parseFloat(pmParams[0]) || 25;
+      const pmLenR = parseFloat(pmParams[1]) || pmLenL;
+      const pmLenB = parseFloat(pmParams[2]) || 30;
+      const pmAngL = parseFloat(pmParams[3]) || 0;
+      const pmAngR = parseFloat(pmParams[4]) || 0;
+      const pmAngB = parseFloat(pmParams[5]) || 0;
+
+      const radL = (pmAngL * Math.PI) / 180;
+      const radR = (pmAngR * Math.PI) / 180;
+      const radB = (pmAngB * Math.PI) / 180;
+
+      // Movable: left/right go UP, bottom goes DOWN
+      const tLx = -R * Math.cos(radL), tLy = R * Math.sin(radL);
+      const eLx = tLx - pmLenL * Math.sin(radL), eLy = tLy - pmLenL * Math.cos(radL);
+      const tRx = R * Math.cos(radR), tRy = R * Math.sin(radR);
+      const eRx = tRx + pmLenR * Math.sin(radR), eRy = tRy - pmLenR * Math.cos(radR);
+      const eBx = pmLenB * Math.sin(radB), eBy = pmLenB * Math.cos(radB);
+
       return (
-        <g transform={`scale(${pmScale})`}>
+        <g>
           <line x1={-hw} y1={0} x2={hw} y2={0} stroke="transparent" strokeWidth={sw} />
-          <circle cx={0} cy={0} r={16} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
+          <circle cx={0} cy={0} r={R} fill="#e2e8f0" stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={4} fill={strokeColor} />
-          <path d="M -16 0 A 16 16 0 0 0 16 0" fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
-          <line x1={-16} y1={0} x2={-16} y2={-25} stroke={strokeColor} strokeWidth={1.5} />
-          <line x1={16} y1={0} x2={16} y2={-25} stroke={strokeColor} strokeWidth={1.5} />
-          <line x1={0} y1={0} x2={0} y2={16} stroke={strokeColor} strokeWidth={sw} />
+          <path d={`M ${-R} 0 A ${R} ${R} 0 0 0 ${R} 0`} fill="none" stroke={strokeColor} strokeWidth={sw} strokeDasharray="4 2" />
+          <line x1={tLx} y1={tLy} x2={eLx} y2={eLy} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={tRx} y1={tRy} x2={eRx} y2={eRy} stroke={strokeColor} strokeWidth={sw} />
+          <line x1={0} y1={R} x2={eBx} y2={eBy} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
     }
@@ -514,12 +554,12 @@ export const renderSymbolOnCanvas = (
 };
 
 export const getPulleyKinematics = (params: string[], isMovable: boolean) => {
-  const R = 22;
+  const R = 16;
   const p0 = parseFloat(params[0]); const lenL = isNaN(p0) ? 25 : p0;
   const p1 = parseFloat(params[1]); const lenR = isNaN(p1) ? lenL : p1;
 
   if (isMovable) {
-    const p2 = parseFloat(params[2]); const lenB = isNaN(p2) ? 22 : p2;
+    const p2 = parseFloat(params[2]); const lenB = isNaN(p2) ? 30 : p2;
     const p3 = parseFloat(params[3]); const angL = isNaN(p3) ? 0 : p3;
     const p4 = parseFloat(params[4]); const angR = isNaN(p4) ? 0 : p4;
     const p5 = parseFloat(params[5]); const angB = isNaN(p5) ? 0 : p5;
@@ -540,7 +580,7 @@ export const getPulleyKinematics = (params: string[], isMovable: boolean) => {
     // Fixed Pulley
     const p2 = parseFloat(params[2]); const angL = isNaN(p2) ? 0 : p2;
     const p3 = parseFloat(params[3]); const angR = isNaN(p3) ? 0 : p3;
-    const p4 = parseFloat(params[4]); const lenT = isNaN(p4) ? 35 : p4;
+    const p4 = parseFloat(params[4]); const lenT = isNaN(p4) ? 25 : p4;
     const p5 = parseFloat(params[5]); const angT = isNaN(p5) ? 0 : p5;
     const radL = (angL * Math.PI) / 180;
     const radR = (angR * Math.PI) / 180;

@@ -484,21 +484,23 @@ export function useCircuitEditor() {
     setDrawingWire([{ x: snapToGrid(point.x), y: snapToGrid(point.y) }]);
   }, []);
 
-  const finishDrawingWire = useCallback((endPoint?: Point) => {
+  const finishDrawingWire = useCallback((endPoint?: Point, direction?: 'horizontal' | 'vertical') => {
     if (drawingWire && drawingWire.length >= 1) {
       let finalPoints = [...drawingWire];
       if (endPoint) {
         // Use exact endpoint from caller — do NOT re-snap, it's already precise
         const last = finalPoints[finalPoints.length - 1];
-        // Orthogonal routing: Z-shape (3-segment) through midpoint
-        // This avoids passing through BOTH start and end component bodies
+        // Orthogonal routing: L-shape or Z-shape based on direction
         const adx = Math.abs(last.x - endPoint.x);
         const ady = Math.abs(last.y - endPoint.y);
         if (adx > 5 && ady > 5) {
-          // Z-shape: vertical → horizontal at midpoint → vertical
-          const midY = snapToGrid((last.y + endPoint.y) / 2);
-          finalPoints.push({ x: last.x, y: midY });
-          finalPoints.push({ x: endPoint.x, y: midY });
+          if (direction === 'vertical') {
+            // Vertical first: go vertical → horizontal
+            finalPoints.push({ x: last.x, y: endPoint.y });
+          } else {
+            // Horizontal first: go horizontal → vertical
+            finalPoints.push({ x: endPoint.x, y: last.y });
+          }
         }
         finalPoints.push({ x: endPoint.x, y: endPoint.y });
       }
