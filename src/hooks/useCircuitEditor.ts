@@ -600,6 +600,13 @@ export function useCircuitEditor() {
     ));
   }, [pushHistory]);
 
+  const toggleTerminals = useCallback((id: string) => {
+    pushHistory();
+    setComponents(prev => prev.map(c =>
+      c.id === id ? { ...c, hideTerminals: !c.hideTerminals } : c
+    ));
+  }, [pushHistory]);
+
   const toggleSwitch = useCallback((id: string) => {
     pushHistory();
     setComponents(prev => prev.map(c => {
@@ -694,6 +701,7 @@ export function useCircuitEditor() {
     moveSelected,
     rotateComponent,
     flipComponent,
+    toggleTerminals,
     deleteSelected,
     selectComponent,
     selectMany,

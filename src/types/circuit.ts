@@ -59,6 +59,7 @@ export interface CircuitComponent {
   value?: string;
   selected?: boolean;
   flipped?: boolean; // Lật ngang (mirror theo trục Y)
+  hideTerminals?: boolean; // Ẩn cực dương/âm trên Ampe kế/Vôn kế
 }
 
 export interface Wire {

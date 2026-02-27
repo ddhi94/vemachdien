@@ -313,6 +313,7 @@ const Index = () => {
               pushHistory={editor.pushHistory}
               setComponentLabel={editor.setComponentLabel}
               moveLabel={editor.moveLabel}
+              onToggleTerminals={editor.toggleTerminals}
               mode={mode}
               hideNodes={hideNodes}
               showLabels={showLabels}

@@ -1,0 +1,76 @@
+# Ý tưởng Phát triển Module Quang Học (Optics)
+
+Việc mở rộng từ mạch điện và cơ học sang **Quang học** là một bước đi tuyệt vời, giúp biến ứng dụng trở thành một "Phòng thí nghiệm Vật lý Ảo" toàn diện. Dưới đây là lộ trình và ý tưởng chi tiết để xây dựng kho linh kiện và tính năng vẽ các bài Quang học mô phỏng theo SGK.
+
+---
+
+## 1. Hệ thống Linh kiện (Optics Components)
+
+Hệ thống cần cung cấp đủ các công cụ để thiết lập mọi bài toán quang học phổ thông:
+
+### A. Nguồn sáng (Light Sources)
+*   **Laser tia đơn (Single Laser):** Phát ra một tia sáng mỏng, có thể đổi màu (đỏ, xanh). 
+*   **Nguồn điểm (Point Source):** Phát sáng tỏa tròn hoặc phát chùm sáng góc rộng.
+*   **Hộp sáng chùm (Beam Source):** Phát ra chùm sáng gồm nhiều tia song song (thường dùng trong kính lúp/thấu kính). Cần có slider để điều chỉnh bề rộng chùm sáng và số lượng tia sáng.
+
+### B. Quang cụ phản xạ (Mirrors)
+*   **Gương phẳng (Flat Mirror):** Ký hiệu nét liền với các gạch chéo ở mặt sau.
+*   **Gương cầu lõm / Gương cầu lồi (Concave / Convex Mirrors):** Có thể kéo giãn để thay đổi bán kính cong (R) và tiêu cự (f = R/2).
+
+### C. Quang cụ khúc xạ (Lenses & Mediums)
+*   **Thấu kính hội tụ (Convex Lens) & Phân kì (Concave Lens):** Vẽ theo chuẩn ký hiệu mũi tên 2 chiều SGK hoặc vẽ hình khối thủy tinh. Cho phép người dùng nhập trực tiếp **Tiêu cự (f)**.
+*   **Bản mặt song song (Rectangular Block):** Khối thủy tinh chữ nhật. Cho phép thay đổi **chiết suất (n)** để quan sát độ lệch tia tia tới/ló.
+*   **Lăng kính tam giác (Triangular Prism):** Cho phép đổi góc chiết quang $A$ và chiết suất $n$.
+*   **Khối bán trụ (Semicircular Block):** Rất hay dùng trong SGK để thí nghiệm khúc xạ và phản xạ toàn phần.
+
+### D. Công cụ Đo đạc & Hỗ trợ (Measurement & Tools)
+*   **Thước đo góc tròn / bán nguyệt (Protractor):** Linh kiện đặc biệt (lớp overlay) có trong suốt, có thể xoay và di chuyển để đo chuẩn xác góc tới $i$ và góc khúc xạ $r$.
+*   **Pháp tuyến tự động (Auto-Normal Line):** Một nút bật/tắt để tự động vẽ các đường đứt nét thẳng góc tại mọi điểm giao cắt của tia sáng và mặt phân cách.
+*   **Màn ảnh (Screen):** Thanh thẳng hứng ảnh để biểu diễn ảnh thật.
+
+---
+
+## 2. Các Bài Thí nghiệm SGK cần hướng tới
+
+Nếu hoàn thiện, học sinh/giáo viên có thể vẽ ngay:
+
+1.  **Định luật phản xạ ánh sáng:** Laser chiếu vào gương phẳng, đo góc tới và góc phản xạ bằng thước đo góc ảo trên màn hình.
+2.  **Định luật khúc xạ ánh sáng & Phản xạ toàn phần:** Chiếu laser từ không khí ($n=1$) vào khối bán trụ ($n=1.5$). Kéo xoay laser để sinh ra góc tới giới hạn ($i_{gh}$), quan sát tia ló biến mất và tia phản xạ toàn phần sáng lên.
+3.  **Đường đi tia sáng qua bản mặt song song / lăng kính:** Quan sát tia ló song song với tia tới hoặc lệch về phía đáy lăng kính. Trình diễn hiện tượng tán sắc (chia tia trắng thành 7 màu - nâng cao).
+4.  **Sự tạo ảnh bởi Thấu kính / Gương cầu:** Vẽ vật sáng $AB$, hiển thị các tia đặc biệt (tia qua quang tâm, tia song song trục chính, tia qua tiêu điểm). Tự động vẽ giao điểm tạo ra ảnh $A'B'$ (ảnh thật đường liền, ảnh ảo đường đứt nét).
+
+---
+
+## 3. Kiến trúc Tính toán Gợi ý (Ray Tracing Logic)
+
+Về mặt kỹ thuật lập trình (Engineering), Quang học hoàn toàn khác với Điện hay Cơ, nó yêu cầu thuật toán dò tia **(Ray Casting/Tracing)** realtime.
+
+### Thuật toán cốt lõi:
+1.  **Định nghĩa phân cảnh:** Ứng dụng phải trích xuất các "Cạnh" (Edges - Gương, mặt thấu kính, mặt lăng kính) từ các linh kiện trên Canvas.
+2.  **Tính toán Va chạm (Intersection):** Bắn các vector tia sáng từ nguồn. Tìm giao điểm gần nhất với bất kỳ "cạnh" nào (Line-Line intersection algebra).
+3.  **Xử lý Giao cắt (Law Application):** Tại điểm giao cắt, xác định vector Pháp tuyến $N$.
+    *   Nếu là Gương: Áp dụng công thức phản xạ $\vec{V}_{ref} = \vec{V}_{in} - 2(\vec{V}_{in} \cdot \vec{N})\vec{N}$.
+    *   Nếu là Vật chất khúc xạ: Áp dụng định luật Snell ($n_1 \sin(i) = n_2 \sin(r)$). Nếu góc tới lớn hơn góc giới hạn, chuyển sang tính phản xạ toàn phần.
+4.  **Đệ quy (Recursion):** Dùng tia mới được tạo ra (refracted/reflected) tiếp tục dò đường đi cho đến khi ra ngoài màn hình hoặc va chạm $>10$ lần (để tránh lặp vô hạn do phản xạ qua lại).
+
+### Thiết kế State/Data:
+Update thêm `cType` bắt đầu bằng `opt_` (ví dụ `opt_laser`, `opt_lens_convex`).
+Dữ liệu value của các quang cụ sẽ lưu:
+*   $n$: Chiết suất
+*   $f$: Tiêu cự
+*   $opacity$: Độ trong suốt (để render SVG cho đẹp).
+
+---
+
+## 4. Giao diện và Trợ lý Tạo Bài Tập (UI/UX & Problem Maker)
+
+*   **Tự động vẽ tia (Auto-Ray Tracing):** Khi người dùng vẽ tia tới (Incident ray) chạm mặt phân cách/gương, app tự động tính toán và vẽ ngay tia phản xạ và khúc xạ.
+*   **Điều chỉnh trực quan (Live Tuning):** Người dùng có thể chỉnh chiết suất ($n$) qua một slider hoặc nhập số, ngay lập tức quan sát thấy góc khúc xạ thay đổi tương ứng trên màn hình.
+*   **Chế độ Cổ đố / Đề bài (Blackbox / Exercise Mode):** Một chức năng tuyệt vời dành riêng cho giáo viên thiết kế bài tập vật lý. Cung cấp các nút bật/tắt (Toggle) hiển thị cho từng thành phần:
+    *   **Ẩn tia tới / tia khúc xạ / tia phản xạ:** Cung cấp 1 tia, yêu cầu học sinh vẽ các tia còn lại.
+    *   **Ẩn quang cụ (Gương / Lăng kính / Thấu kính):** Bài toán "Hộp đen quang học" kinh điển. Cho biết đường đi của tia tới và tia ló, yêu cầu học sinh xác định đó là thấu kính hội tụ, phân kỳ hay gương.
+*   **Hiệu ứng phát sáng (Glow Effect):** Vẽ tia sáng quang học với CSS Glow (dùng Drop Shadow trong SVG) mang màu sắc Neon (Đỏ, Xanh lá) trên nền Dark mode sẽ cực kỳ ấn tượng và *Premium*.
+*   **Thanh công cụ phụ (Optic Toolbar):** Khi vẽ chế độ quang học, có thể hiển thị toggle "Hiển thị Pháp tuyến", "Hiển thị tia ảo (đường kéo dài bằng nét đứt)", "Gắn thước đo góc".
+*   **Real-time Dragging:** Trải nghiệm đáng giá nhất là cầm con trỏ chuột *xoay* tia laser, và các tia phản xạ/khúc xạ "nhảy" theo real-time. Điều này đòi hỏi hàm dò tia chạy trong `handleMouseMove` phải rất tối ưu.
+
+Đề xuất này hoàn toàn biến Circuit Sketcher thành một phòng Lab Quang Học Ảo thực thụ. Nếu bạn muốn thực hiện, chúng ta có thể làm *Sprint 1: Tia Laser + Gương Phẳng + Thước đo góc + Tính năng Ẩn/Hiện* để test thuật toán phản xạ trước!

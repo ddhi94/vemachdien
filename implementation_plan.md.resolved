@@ -1,0 +1,54 @@
+# Fix: Đường dây đi nét theo hướng chuột
+
+## Vấn đề
+Khi vẽ dây (wire mode), đường dây luôn đi nét **ngang trước** (horizontal-first) bất kể hướng chuột di chuyển. Nghĩa là khi người dùng kéo chuột theo hướng dọc, dây vẫn đi ngang trước rồi mới quẹo dọc → trải nghiệm không tự nhiên.
+
+**Root cause**: `wirePreviewPoints` trong [CircuitCanvas.tsx](file:///c:/Users/Duong%20Hieu/.gemini/antigravity/scratch/circuit-sketcher/src/components/circuit/CircuitCanvas.tsx) dòng 796-797:
+```javascript
+if (last.x !== end.x && last.y !== end.y) {
+  pts.push({ x: end.x, y: last.y }); // ← Luôn horizontal-first
+}
+```
+
+## Proposed Changes
+
+### [MODIFY] [CircuitCanvas.tsx](file:///c:/Users/Duong Hieu/.gemini/antigravity/scratch/circuit-sketcher/src/components/circuit/CircuitCanvas.tsx)
+
+#### 1. Thêm state theo dõi hướng chuột chủ đạo
+- Thêm state `wireDirection` để lưu hướng chủ đạo: `'horizontal'` hoặc `'vertical'`
+- Cập nhật hướng dựa trên sự khác biệt dx/dy từ điểm bắt đầu đến vị trí chuột hiện tại
+
+#### 2. Sửa logic `wirePreviewPoints`
+- Thay vì luôn `{ x: end.x, y: last.y }` (ngang trước), chọn corner point dựa trên `wireDirection`:
+  - Nếu `horizontal` → corner = `{ x: end.x, y: last.y }` (đi ngang trước)
+  - Nếu `vertical` → corner = `{ x: last.x, y: end.y }` (đi dọc trước)
+
+#### 3. Sửa logic `finishDrawingWire` (useCircuitEditor.ts)
+- Tương tự, áp dụng hướng chủ đạo khi tạo Z-shape routing cho dây hoàn thành
+
+```diff
+ // wirePreviewPoints
+ if (last.x !== end.x && last.y !== end.y) {
+-  pts.push({ x: end.x, y: last.y });
++  if (wireDirection === 'vertical') {
++    pts.push({ x: last.x, y: end.y });
++  } else {
++    pts.push({ x: end.x, y: last.y });
++  }
+ }
+```
+
+### [MODIFY] [useCircuitEditor.ts](file:///c:/Users/Duong Hieu/.gemini/antigravity/scratch/circuit-sketcher/src/hooks/useCircuitEditor.ts)
+
+- Thêm callback `addWirePoint` để cho phép thêm điểm trung gian khi click vào canvas trong wire mode (multi-segment wire)
+
+## Verification Plan
+
+### Manual Verification
+1. Chạy `npm run dev` và mở app
+2. Chuyển sang Wire mode (nhấn W)
+3. Bắt đầu từ 1 terminal → kéo chuột **sang phải** → dây phải đi ngang trước  
+4. Bắt đầu từ 1 terminal → kéo chuột **xuống dưới** → dây phải đi dọc trước
+5. Bắt đầu từ 1 terminal → kéo chuột **chéo** → dây phải đi theo hướng chủ đạo (dx > dy → ngang, dy > dx → dọc)
+6. Kiểm tra snap vào terminal vẫn hoạt động đúng
+7. Kiểm tra ESC vẫn hủy vẽ dây

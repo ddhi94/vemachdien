@@ -36,7 +36,9 @@ export const renderSymbolOnCanvas = (
   sw: number = 2,
   size: number = 60,
   value?: string,
-  hideNodes?: boolean
+  hideNodes?: boolean,
+  hideTerminals?: boolean,
+  flipped: boolean = false
 ): React.ReactNode => {
   const hw = size / 2;
   const hh = size / 4;
@@ -62,8 +64,12 @@ export const renderSymbolOnCanvas = (
           {/* Con chạy (C) */}
           <line x1={0} y1={-15} x2={0} y2={-5} stroke={strokeColor} strokeWidth={sw} />
           <polygon points="0,-5 -3,-10 3,-10" fill={strokeColor} />
-          <text x={-12} y={12} fontSize={8} fill={strokeColor}>M</text>
-          <text x={8} y={12} fontSize={8} fill={strokeColor}>N</text>
+          <g transform={flipped ? "translate(-12, 12) scale(-1, 1) translate(12, -12)" : ""}>
+            <text x={-12} y={12} fontSize={8} fill={strokeColor}>M</text>
+          </g>
+          <g transform={flipped ? "translate(8, 12) scale(-1, 1) translate(-8, -12)" : ""}>
+            <text x={8} y={12} fontSize={8} fill={strokeColor}>N</text>
+          </g>
         </g>
       );
 
@@ -96,8 +102,12 @@ export const renderSymbolOnCanvas = (
           <line x1={-4} y1={-12} x2={-4} y2={12} stroke={strokeColor} strokeWidth={sw} />
           <line x1={4} y1={-7} x2={4} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
           <line x1={4} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <text x={-6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="end">+</text>
-          <text x={6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="start">−</text>
+          <g transform={flipped ? "translate(-6, -15) scale(-1, 1) translate(6, 15)" : ""}>
+            <text x={-6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="end">+</text>
+          </g>
+          <g transform={flipped ? "translate(6, -15) scale(-1, 1) translate(-6, 15)" : ""}>
+            <text x={6} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="start">−</text>
+          </g>
         </g>
       );
 
@@ -111,8 +121,12 @@ export const renderSymbolOnCanvas = (
           <line x1={4} y1={-12} x2={4} y2={12} stroke={strokeColor} strokeWidth={sw} />
           <line x1={12} y1={-7} x2={12} y2={7} stroke={strokeColor} strokeWidth={sw + 2} />
           <line x1={12} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <text x={-14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="end">+</text>
-          <text x={14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="start">−</text>
+          <g transform={flipped ? "translate(-14, -15) scale(-1, 1) translate(14, 15)" : ""}>
+            <text x={-14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="end">+</text>
+          </g>
+          <g transform={flipped ? "translate(14, -15) scale(-1, 1) translate(-14, 15)" : ""}>
+            <text x={14} y={-15} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="start">−</text>
+          </g>
         </g>
       );
 
@@ -127,7 +141,9 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <circle cx={0} cy={0} r={4} fill={strokeColor} />
-          <text x={0} y={14} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={14} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+          </g>
         </g>
       );
 
@@ -135,7 +151,9 @@ export const renderSymbolOnCanvas = (
       return (
         <g>
           <circle cx={0} cy={0} r={4} fill={strokeColor} />
-          <text x={0} y={14} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={14} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+          </g>
         </g>
       );
 
@@ -147,7 +165,9 @@ export const renderSymbolOnCanvas = (
           <line x1={-12} y1={0} x2={12} y2={-12} stroke={strokeColor} strokeWidth={sw} />
           <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
           <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={-15} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">K</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={-15} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">K</text>
+          </g>
         </g>
       );
 
@@ -159,7 +179,9 @@ export const renderSymbolOnCanvas = (
           <line x1={-12} y1={0} x2={15} y2={0} stroke={strokeColor} strokeWidth={sw} />
           <circle cx={15} cy={0} r={2.5} fill={strokeColor} />
           <line x1={15} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={-10} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">K</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={-10} fontSize={12} fontWeight="bold" fill={strokeColor} textAnchor="middle">K</text>
+          </g>
         </g>
       );
 
@@ -179,9 +201,19 @@ export const renderSymbolOnCanvas = (
         <g>
           <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">A</text>
-          <text x={-20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
-          <text x={20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">A</text>
+          </g>
+          {!hideTerminals && (
+            <>
+              <g transform={flipped ? "translate(-20, -5) scale(-1, 1) translate(20, 5)" : ""}>
+                <text x={-20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+              </g>
+              <g transform={flipped ? "translate(20, -5) scale(-1, 1) translate(-20, 5)" : ""}>
+                <text x={20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+              </g>
+            </>
+          )}
           <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
@@ -191,9 +223,19 @@ export const renderSymbolOnCanvas = (
         <g>
           <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">V</text>
-          <text x={-20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
-          <text x={20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">V</text>
+          </g>
+          {!hideTerminals && (
+            <>
+              <g transform={flipped ? "translate(-20, -5) scale(-1, 1) translate(20, 5)" : ""}>
+                <text x={-20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">+</text>
+              </g>
+              <g transform={flipped ? "translate(20, -5) scale(-1, 1) translate(-20, 5)" : ""}>
+                <text x={20} y={-5} fontSize={10} fontWeight="bold" fill={strokeColor} textAnchor="middle">−</text>
+              </g>
+            </>
+          )}
           <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
@@ -247,7 +289,9 @@ export const renderSymbolOnCanvas = (
         <g>
           <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">M</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">M</text>
+          </g>
           <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
@@ -257,7 +301,9 @@ export const renderSymbolOnCanvas = (
         <g>
           <line x1={-hw} y1={0} x2={-14} y2={0} stroke={strokeColor} strokeWidth={sw} />
           <circle cx={0} cy={0} r={14} fill="white" stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">G</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={5} fontSize={14} fontWeight="bold" fill={strokeColor} textAnchor="middle">G</text>
+          </g>
           <line x1={14} y1={0} x2={hw} y2={0} stroke={strokeColor} strokeWidth={sw} />
         </g>
       );
@@ -338,7 +384,9 @@ export const renderSymbolOnCanvas = (
       return (
         <g transform={`scale(${blockScale})`}>
           <rect x={-15} y={-15} width={30} height={30} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} rx={2} />
-          <text x={0} y={4} fontSize={14} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">m</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={4} fontSize={14} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">m</text>
+          </g>
         </g>
       );
     }
@@ -348,7 +396,9 @@ export const renderSymbolOnCanvas = (
       return (
         <g transform={`scale(${circleScale})`}>
           <circle cx={0} cy={0} r={15} fill="#f0f4f8" stroke={strokeColor} strokeWidth={sw} />
-          <text x={0} y={4} fontSize={12} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">mc</text>
+          <g transform={flipped ? "scale(-1, 1)" : ""}>
+            <text x={0} y={4} fontSize={12} fontWeight="bold" fontFamily="serif" fontStyle="italic" fill={strokeColor} textAnchor="middle">mc</text>
+          </g>
         </g>
       );
     }
@@ -436,7 +486,7 @@ export const renderSymbolOnCanvas = (
       const drawBase = baseLen * autoScale;
       const drawHeight = height * autoScale;
 
-      const arcR = Math.min(15, drawBase * 0.8, Math.hypot(drawBase, drawHeight) * 0.4);
+      const arcR = Math.min(12, drawBase * 0.8, Math.hypot(drawBase, drawHeight) * 0.4);
 
       // Bottom angle geometry
       const blX = -drawBase / 2;
@@ -457,14 +507,18 @@ export const renderSymbolOnCanvas = (
           {angleDisplay !== 'none' && angleDisplay !== 'top' && (
             <>
               <path d={bottomArcPath} fill="none" stroke={strokeColor} strokeWidth={1} />
-              <text x={blX + arcR + 4} y={blY - 4} fontSize={Math.max(8, arcR * 0.8)} fill={strokeColor} fontStyle="italic">{parseFloat(angle.toFixed(1))}°</text>
+              <g transform={flipped ? `translate(${blX + arcR + 2}, ${blY - 2}) scale(-1, 1) translate(${-blX - arcR - 2}, ${-blY + 2})` : ""}>
+                <text x={blX + arcR + 2} y={blY - 2} fontSize={9} fill={strokeColor} fontStyle="italic">{parseFloat(angle.toFixed(1))}°</text>
+              </g>
             </>
           )}
 
           {angleDisplay === 'top' && (
             <>
               <path d={topArcPath} fill="none" stroke={strokeColor} strokeWidth={1} />
-              <text x={tX - arcR / 2 - 4} y={tY + arcR + 10} fontSize={Math.max(8, arcR * 0.8)} fill={strokeColor} fontStyle="italic" textAnchor="end">{parseFloat((90 - angle).toFixed(1))}°</text>
+              <g transform={flipped ? `translate(${tX - arcR / 2 - 2}, ${tY + arcR + 8}) scale(-1, 1) translate(${-tX + arcR / 2 + 2}, ${-tY - arcR - 8})` : ""}>
+                <text x={tX - arcR / 2 - 2} y={tY + arcR + 8} fontSize={9} fill={strokeColor} fontStyle="italic" textAnchor="end">{parseFloat((90 - angle).toFixed(1))}°</text>
+              </g>
             </>
           )}
         </g>

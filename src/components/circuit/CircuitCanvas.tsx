@@ -40,6 +40,7 @@ interface Props {
   mode: 'select' | 'wire';
   hideNodes: boolean;
   showLabels: boolean;
+  onToggleTerminals?: (id: string) => void;
 }
 
 const snapToGrid = (val: number) => Math.round(val / SNAP_SIZE) * SNAP_SIZE;
@@ -89,6 +90,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   mode,
   hideNodes,
   showLabels,
+  onToggleTerminals,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number; isGroup: boolean } | null>(null);
@@ -1075,7 +1077,9 @@ export const CircuitCanvas: React.FC<Props> = ({
                     isSelected ? 'hsl(213, 70%, 45%)' : 'hsl(215, 30%, 20%)',
                     globalStrokeWidth, 60,
                     comp.value,
-                    hideNodes
+                    hideNodes,
+                    comp.hideTerminals,
+                    !!comp.flipped
                   )}
 
                   {/* Label - show for junctions always, for other components only when showLabels is on */}
@@ -1416,6 +1420,7 @@ export const CircuitCanvas: React.FC<Props> = ({
         if (!comp) return null;
         const isFlippable = !['junction', 'terminal_positive', 'terminal_negative', 'ground', 'wire_jumper',
           'mech_vector', 'mech_axis', 'mech_axis_y', 'mech_line_dashed', 'mech_arc', 'mech_trajectory'].includes(comp.type);
+        const isMeter = comp.type === 'ammeter' || comp.type === 'voltmeter';
         return (
           <div
             style={{
@@ -1428,6 +1433,20 @@ export const CircuitCanvas: React.FC<Props> = ({
             onContextMenu={(e) => e.preventDefault()}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Toggle terminals ± */}
+            {isMeter && onToggleTerminals && (
+              <button
+                className="flex items-center gap-2 px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleTerminals(componentContextMenu.compId);
+                  setComponentContextMenu(null);
+                }}
+              >
+                <span style={{ fontSize: 14 }}>±</span>
+                {comp.hideTerminals ? 'Hiện cực (±)' : 'Ẩn cực (±)'}
+              </button>
+            )}
             {/* Flip horizontal */}
             {isFlippable && (
               <button
