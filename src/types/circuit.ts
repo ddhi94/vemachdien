@@ -58,6 +58,7 @@ export interface CircuitComponent {
   labelOffset?: Point; // Used for dragging just the label text relative to the component
   value?: string;
   selected?: boolean;
+  flipped?: boolean; // Lật ngang (mirror theo trục Y)
 }
 
 export interface Wire {

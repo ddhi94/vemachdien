@@ -17,6 +17,7 @@ interface Props {
   onMoveComponentNode: (id: string, oldPoint: Point, newPoint: Point) => void;
   onMoveSelected: (ids: string[], dx: number, dy: number) => void;
   onRotateComponent: (id: string) => void;
+  onFlipComponent: (id: string) => void;
   onToggleSwitch: (id: string) => void;
   onUpdateComponentPosition: (id: string, x: number, y: number) => void;
   onUpdateComponentRotation: (id: string, rotation: number) => void;
@@ -65,6 +66,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   onMoveComponentNode,
   onMoveSelected,
   onRotateComponent,
+  onFlipComponent,
   onToggleSwitch,
   onUpdateComponentPosition,
   onUpdateComponentRotation,
@@ -102,6 +104,7 @@ export const CircuitCanvas: React.FC<Props> = ({
   const [wireClickedOnWire, setWireClickedOnWire] = useState<{ wireId: string; point: Point } | null>(null);
   const [junctionLabelInput, setJunctionLabelInput] = useState<{ wireId: string; compId: string | null; point: Point; x: number; y: number } | null>(null);
   const [componentValueInput, setComponentValueInput] = useState<{ compId: string; initialValue: string; x: number; y: number } | null>(null);
+  const [componentContextMenu, setComponentContextMenu] = useState<{ compId: string; x: number; y: number } | null>(null);
   const [resizing, setResizing] = useState<{ id: string; type: 'scale' | 'length' | 'angle' | 'string_end'; startX: number; startY: number; initialValue: string; handle: string } | null>(null);
 
   // Dragging state
@@ -620,6 +623,13 @@ export const CircuitCanvas: React.FC<Props> = ({
   // Context menu on right click for junction points
   const [nodeContextMenu, setNodeContextMenu] = useState<{ point: Point; compId: string | null; wireId: string | null; pointIndex: number | null; x: number; y: number } | null>(null);
 
+  const handleComponentContextMenu = useCallback((e: React.MouseEvent, comp: CircuitComponent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setComponentContextMenu({ compId: comp.id, x: e.clientX, y: e.clientY });
+    setNodeContextMenu(null);
+  }, []);
+
   const handleNodeContextMenu = useCallback((e: React.MouseEvent, point: Point, compId: string | null = null, wireId: string | null = null, pointIndex: number | null = null) => {
     e.preventDefault();
     e.stopPropagation();
@@ -771,6 +781,7 @@ export const CircuitCanvas: React.FC<Props> = ({
         setJunctionLabelInput(null);
         setComponentValueInput(null);
         setNodeContextMenu(null);
+        setComponentContextMenu(null);
         setWireDrawing(false);
         wireDirectionLocked.current = false;
         setDraggingWirePoint(null);
@@ -784,7 +795,10 @@ export const CircuitCanvas: React.FC<Props> = ({
 
   // Handle clicking outside context menus
   useEffect(() => {
-    const handleClickOutside = () => setNodeContextMenu(null);
+    const handleClickOutside = () => {
+      setNodeContextMenu(null);
+      setComponentContextMenu(null);
+    };
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
@@ -1021,10 +1035,11 @@ export const CircuitCanvas: React.FC<Props> = ({
             return (
               <g key={comp.id}>
                 <g
-                  transform={`translate(${comp.x}, ${comp.y}) rotate(${comp.rotation})`}
+                  transform={`translate(${comp.x}, ${comp.y}) rotate(${comp.rotation}) scale(${comp.flipped ? -1 : 1}, 1)`}
                   style={{ cursor: mode === 'select' ? 'move' : 'default' }}
                   onMouseDown={(e) => handleComponentMouseDown(e, comp)}
                   onDoubleClick={(e) => handleComponentDblClick(e, comp)}
+                  onContextMenu={(e) => handleComponentContextMenu(e, comp)}
                 >
                   {/* Invisible hit area */}
                   {isPointLike ? (
@@ -1394,6 +1409,70 @@ export const CircuitCanvas: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Component Context Menu Overlay */}
+      {componentContextMenu && (() => {
+        const comp = components.find(c => c.id === componentContextMenu.compId);
+        if (!comp) return null;
+        const isFlippable = !['junction', 'terminal_positive', 'terminal_negative', 'ground', 'wire_jumper',
+          'mech_vector', 'mech_axis', 'mech_axis_y', 'mech_line_dashed', 'mech_arc', 'mech_trajectory'].includes(comp.type);
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: componentContextMenu.x,
+              top: componentContextMenu.y,
+              zIndex: 1000,
+            }}
+            className="flex flex-col min-w-[160px] py-1 bg-popover text-popover-foreground rounded-md border shadow-md text-sm"
+            onContextMenu={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Flip horizontal */}
+            {isFlippable && (
+              <button
+                className="flex items-center gap-2 px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFlipComponent(componentContextMenu.compId);
+                  setComponentContextMenu(null);
+                }}
+              >
+                <span style={{ display: 'inline-block', transform: 'scaleX(-1)', fontSize: 14 }}>↔</span>
+                Lật ngang (Flip)
+              </button>
+            )}
+            {/* Rotate */}
+            <button
+              className="flex items-center gap-2 px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRotateComponent(componentContextMenu.compId);
+                setComponentContextMenu(null);
+              }}
+            >
+              <span style={{ fontSize: 14 }}>↻</span>
+              Xoay 90°
+            </button>
+            {/* Delete */}
+            <button
+              className="flex items-center gap-2 px-3 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectComponent(componentContextMenu.compId, false);
+                pushHistory();
+                setTimeout(() => {
+                  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+                }, 50);
+                setComponentContextMenu(null);
+              }}
+            >
+              <span style={{ fontSize: 14 }}>🗑</span>
+              Xóa
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Node Context Menu Overlay */}
       {nodeContextMenu && (

@@ -593,6 +593,13 @@ export function useCircuitEditor() {
     }));
   }, [pushHistory]);
 
+  const flipComponent = useCallback((id: string) => {
+    pushHistory();
+    setComponents(prev => prev.map(c =>
+      c.id === id ? { ...c, flipped: !c.flipped } : c
+    ));
+  }, [pushHistory]);
+
   const toggleSwitch = useCallback((id: string) => {
     pushHistory();
     setComponents(prev => prev.map(c => {
@@ -686,6 +693,7 @@ export function useCircuitEditor() {
     moveComponentNode,
     moveSelected,
     rotateComponent,
+    flipComponent,
     deleteSelected,
     selectComponent,
     selectMany,

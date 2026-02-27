@@ -294,6 +294,7 @@ const Index = () => {
               onMoveComponentNode={editor.moveComponentNode}
               onMoveSelected={editor.moveSelected}
               onRotateComponent={editor.rotateComponent}
+              onFlipComponent={editor.flipComponent}
               onToggleSwitch={editor.toggleSwitch}
               onUpdateComponentPosition={editor.updateComponentPosition}
               onUpdateComponentRotation={editor.updateComponentRotation}
